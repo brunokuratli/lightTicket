@@ -26,6 +26,14 @@ Damit ist die native Umsetzung fürs Light Phone III der richtige Weg; die PWA
 bleibt als Referenz und zum schnellen Testen. Details zur nativen Variante:
 [`light-tool/README.md`](light-tool/README.md).
 
+➡️ **Schritt-für-Schritt-Anleitung** (Web-Version nutzen **und** native App aufs
+Light Phone III bringen): [`ANLEITUNG.md`](ANLEITUNG.md).
+
+Die Web-Version wird per GitHub Actions auf **GitHub Pages** veröffentlicht
+(Workflow: `.github/workflows/deploy-pages.yml`). Einmalig muss unter
+**Settings → Pages → Source** „GitHub Actions" gewählt werden; danach ist die
+App unter `https://brunokuratli.github.io/lightTicket/` erreichbar.
+
 ---
 
 ## Machbarkeit auf dem Light Phone
