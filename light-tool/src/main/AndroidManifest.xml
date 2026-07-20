@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Live timetable data from transport.opendata.ch -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      The Activity/entry point is provided by the light-sdk `:tool` module
+      scaffold. When you drop these sources into your light-sdk fork, the SDK's
+      host Activity renders HomeScreen() from HomeScreen.kt — you normally do
+      not declare your own launcher Activity here. Keep this manifest limited to
+      permissions unless the SDK docs say otherwise.
+    -->
+</manifest>

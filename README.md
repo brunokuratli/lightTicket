@@ -14,6 +14,18 @@ Die Fahrplandaten kommen von der freien API
 CORS aktiv). Tickets bleiben ausschliesslich auf dem Gerät (IndexedDB) – es gibt
 keinen Server.
 
+## Zwei Umsetzungen in diesem Repo
+
+| Ordner | Was | Zweck |
+|--------|-----|-------|
+| Wurzel (`index.html` …) | **PWA** (HTML/CSS/JS) | Sofort lauffähiger Prototyp, läuft in jedem Browser |
+| [`light-tool/`](light-tool/) | **Natives Light-Phone-III-Tool** (Kotlin/Compose, [light-sdk](https://github.com/lightphone/light-sdk)) | Die eigentliche App fürs Light Phone III |
+
+Seit Juli 2026 gibt es das offizielle **light-sdk** (Kotlin + Jetpack Compose).
+Damit ist die native Umsetzung fürs Light Phone III der richtige Weg; die PWA
+bleibt als Referenz und zum schnellen Testen. Details zur nativen Variante:
+[`light-tool/README.md`](light-tool/README.md).
+
 ---
 
 ## Machbarkeit auf dem Light Phone
@@ -23,27 +35,23 @@ Kurzfassung der Recherche (Stand Juli 2026):
 - Das **Light Phone II** hat **keinen Browser und kein App-System** – eine
   eigene App lässt sich dort nicht installieren.
 - Das **Light Phone III** ist ebenfalls bewusst reduziert (kein klassisches
-  Web-Browsing), **öffnet sich aber 2026 für eine kuratierte „Tool Library"**.
-  Offizielle Tools müssen von Light freigegeben sein und **quelloffen,
-  nicht-kommerziell und datensparsam** sein. Zusätzlich erlaubt ein
-  **Entwicklermodus das Sideloading** eigener Tools ausserhalb der Library.
-  (Quellen: [Wikipedia](https://en.wikipedia.org/wiki/Light_Phone_III),
-  [Engadget](https://www.engadget.com/2161468/the-minimalist-light-phone-iii-will-soon-support-a-curated-set-of-third-party-apps/),
-  [Gadget Hacks](https://smartphones.gadgethacks.com/news/light-phone-iii-third-party-apps-explained-rules-and-risks/))
+  Web-Browsing), hat aber seit **Juli 2026** ein offizielles Entwickler-SDK:
+  das [**light-sdk**](https://github.com/lightphone/light-sdk) (Kotlin +
+  Jetpack Compose). Tools laufen im `:tool`-Modul, werden per Gradle zu einem
+  APK gebaut und heute per **ADB sideloadet**; offiziell verteilte Tools baut
+  und signiert **Light aus einem öffentlichen, quelloffenen Git-Commit**.
+  (Quellen: [light-sdk](https://github.com/lightphone/light-sdk),
+  [Wikipedia](https://en.wikipedia.org/wiki/Light_Phone_III),
+  [Engadget](https://www.engadget.com/2161468/the-minimalist-light-phone-iii-will-soon-support-a-curated-set-of-third-party-apps/))
 
-**Konsequenz für die Umsetzung:** Es gibt (noch) kein öffentliches natives SDK.
-Der pragmatische, sofort lauffähige Weg ist eine **schlanke, offline-fähige
-Web-App (PWA)**, die
+**Konsequenz für die Umsetzung:**
 
-1. **heute** auf jedem Gerät mit Browser läuft (Testen, Companion-Nutzung),
-2. bewusst **monochrom, kontraststark und minimal** gehalten ist – passend zur
-   Design-Sprache von Light und damit anschlussfähig, falls sie später als
-   Light-Tool eingereicht oder per Entwicklermodus portiert wird,
-3. **quelloffen und nicht-kommerziell** ist – also genau die Kriterien der
-   künftigen Tool Library erfüllt.
-
-Diese erste Version ist damit sowohl direkt nutzbar als auch die richtige Basis
-für eine spätere native Light-Phone-Integration.
+1. Die **native App fürs Light Phone III** wird mit dem light-sdk gebaut
+   (Kotlin/Compose) – siehe [`light-tool/`](light-tool/). Sie ist bewusst
+   **monochrom, minimal und quelloffen** und erfüllt damit die Kriterien für
+   eine offizielle Light-Freigabe.
+2. Die **PWA** (Wurzel dieses Repos) bleibt als **Referenz und schneller Test**:
+   sie läuft heute in jedem Browser und diente als lauffähiger Prototyp.
 
 ---
 
