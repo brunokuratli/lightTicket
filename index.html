@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>SBB Light</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>SBB&nbsp;Light</h1>
+    <span id="net" class="net" aria-live="polite"></span>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" data-view="fahrplan" role="tab" aria-selected="true">Fahrplan</button>
+    <button class="tab" data-view="abfahrten" role="tab" aria-selected="false">Abfahrten</button>
+    <button class="tab" data-view="tickets" role="tab" aria-selected="false">Tickets</button>
+  </nav>
+
+  <main>
+    <!-- ============ FAHRPLAN (connections) ============ -->
+    <section id="fahrplan" class="view" data-view="fahrplan">
+      <form id="conn-form" class="form" autocomplete="off">
+        <label>Von
+          <input id="conn-from" name="from" list="stations-from" placeholder="z. B. Bern" required />
+          <datalist id="stations-from"></datalist>
+        </label>
+        <button type="button" id="swap" class="swap" title="Tauschen" aria-label="Von und Nach tauschen">⇅</button>
+        <label>Nach
+          <input id="conn-to" name="to" list="stations-to" placeholder="z. B. Zürich HB" required />
+          <datalist id="stations-to"></datalist>
+        </label>
+        <div class="row">
+          <label class="grow">Datum
+            <input id="conn-date" name="date" type="date" />
+          </label>
+          <label class="grow">Zeit
+            <input id="conn-time" name="time" type="time" />
+          </label>
+          <label class="mode">Ab/An
+            <select id="conn-mode" name="isArrival">
+              <option value="0">Ab</option>
+              <option value="1">An</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit" class="primary">Verbindungen suchen</button>
+      </form>
+      <div id="conn-results" class="results" aria-live="polite"></div>
+    </section>
+
+    <!-- ============ ABFAHRTEN (stationboard) ============ -->
+    <section id="abfahrten" class="view" data-view="abfahrten" hidden>
+      <form id="board-form" class="form" autocomplete="off">
+        <label>Haltestelle
+          <input id="board-station" name="station" list="stations-board" placeholder="z. B. Luzern" required />
+          <datalist id="stations-board"></datalist>
+        </label>
+        <button type="submit" class="primary">Abfahrten anzeigen</button>
+      </form>
+      <div id="board-results" class="results" aria-live="polite"></div>
+    </section>
+
+    <!-- ============ TICKETS (wallet) ============ -->
+    <section id="tickets" class="view" data-view="tickets" hidden>
+      <p class="hint">Tickets werden nur auf diesem Gerät gespeichert. Füge den Barcode deines gekauften SBB-Tickets als Bild hinzu (Screenshot oder Foto der PDF) und zeige ihn dem Kontrollpersonal.</p>
+      <button id="add-ticket" class="primary">Ticket hinzufügen</button>
+      <div id="ticket-list" class="ticket-list"></div>
+    </section>
+  </main>
+
+  <!-- Add-ticket dialog -->
+  <dialog id="ticket-dialog">
+    <form id="ticket-form" method="dialog" class="form">
+      <h2>Ticket hinzufügen</h2>
+      <label>Titel
+        <input id="t-title" placeholder="z. B. Bern → Zürich" required />
+      </label>
+      <div class="row">
+        <label class="grow">Gültig ab
+          <input id="t-from-date" type="date" />
+        </label>
+        <label class="grow">Gültig bis
+          <input id="t-to-date" type="date" />
+        </label>
+      </div>
+      <label>Notiz (optional)
+        <input id="t-note" placeholder="Klasse, Halbtax, Sitzplatz …" />
+      </label>
+      <label>Barcode / Ticket-Bild
+        <input id="t-image" type="file" accept="image/*" />
+      </label>
+      <img id="t-preview" class="preview" alt="" hidden />
+      <div class="row end">
+        <button type="button" id="t-cancel" class="ghost">Abbrechen</button>
+        <button type="submit" class="primary">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Fullscreen ticket viewer -->
+  <div id="ticket-viewer" class="viewer" hidden>
+    <button id="viewer-close" class="viewer-close" aria-label="Schliessen">✕</button>
+    <div class="viewer-inner">
+      <h2 id="viewer-title"></h2>
+      <img id="viewer-image" alt="Ticket-Barcode" />
+      <p id="viewer-meta" class="viewer-meta"></p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Light Tool manifest for SBB Light.
+#
+# NOTE: reconcile these keys with the exact schema of the light-sdk version you
+# clone (see the `examples/authenticator/lighttool.toml` in your fork). The
+# fields below follow the documented intent; key names may differ slightly.
+
+[tool]
+id          = "com.lightticket.sbb"
+name        = "SBB Light"
+version     = "0.1.0"
+description = "Schweizer Fahrplan (SBB) und Ticket-Wallet – minimalistisch."
+author      = "lightTicket"
+# All community tools must be open source so Light can build & sign from a
+# public git commit.
+license     = "MIT"
+source      = "https://github.com/brunokuratli/lightTicket"
+
+# The tool needs network access for live timetable data from
+# transport.opendata.ch. Ticket images stay on the device.
+[permissions]
+network = true

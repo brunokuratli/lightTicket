@@ -1,0 +1,47 @@
+name: Deploy PWA to GitHub Pages
+
+# Publishes the static PWA (repo root) to GitHub Pages so it can be opened in any
+# browser and installed to a phone's home screen. The live timetable works here
+# because a real web host (unlike a sandboxed preview) may call the public
+# transport.opendata.ch API.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}   # allows a manual run from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble site (PWA files only)
+        run: |
+          mkdir -p _site
+          cp index.html styles.css app.js sw.js manifest.webmanifest icon.svg _site/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
