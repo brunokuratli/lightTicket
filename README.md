@@ -27,7 +27,8 @@ bleibt als Referenz und zum schnellen Testen. Details zur nativen Variante:
 [`light-tool/README.md`](light-tool/README.md).
 
 ➡️ **Schritt-für-Schritt-Anleitung** (Web-Version nutzen **und** native App aufs
-Light Phone III bringen): [`ANLEITUNG.md`](ANLEITUNG.md).
+Light Phone III bringen): [`ANLEITUNG.md`](ANLEITUNG.md) – auch als
+einseitiges PDF zum Teilen: [`docs/SBB-Light-Anleitung.pdf`](docs/SBB-Light-Anleitung.pdf).
 
 Die Web-Version wird per GitHub Actions auf **GitHub Pages** veröffentlicht
 (Workflow: `.github/workflows/deploy-pages.yml`). Einmalig muss unter
