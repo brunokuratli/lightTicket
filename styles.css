@@ -199,7 +199,7 @@ button {
   background: #fff;
 }
 .ticket-info { flex: 1; min-width: 0; }
-.ticket-title { font-size: 18px; font-weight: 700; }
+.ticket-title { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
 .ticket-dates { font-size: 14px; color: var(--muted); }
 .ticket-note { font-size: 14px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ticket-actions { display: flex; flex-direction: column; gap: 6px; flex: none; }
