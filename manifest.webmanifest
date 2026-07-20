@@ -1,0 +1,15 @@
+{
+  "name": "SBB Light",
+  "short_name": "SBB Light",
+  "description": "Schweizer Fahrplan und Ticket-Wallet – minimalistisch, offline-fähig.",
+  "lang": "de-CH",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
