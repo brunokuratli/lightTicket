@@ -219,7 +219,10 @@ function renderFavs(kind, box, onPick) {
     el('button', {
       type: 'button', className: 'fav-del', textContent: '✕',
       title: `${f.label} entfernen`, ariaLabel: `${f.label} entfernen`,
-      onclick: () => { favSave(kind, favList(kind).filter((x) => x.key !== f.key)); renderFavs(kind, box, onPick); },
+      onclick: () => {
+        if (!favSave(kind, favList(kind).filter((x) => x.key !== f.key))) alert('Favorit konnte nicht entfernt werden.');
+        renderFavs(kind, box, onPick);
+      },
     }),
   ])));
   box.hidden = !list.length;
@@ -321,7 +324,9 @@ boardForm.addEventListener('submit', async (e) => {
         const t = new Date(st.departure).getTime() + (st.delay || 0) * 60000;
         return !isNaN(t) && t < now - 60000;
       };
-      renderBoard({ ...last.data, stationboard: (last.data.stationboard || []).filter((s) => !left(s)) }, station);
+      const upcoming = (last.data.stationboard || []).filter((s) => !left(s));
+      if (upcoming.length) renderBoard({ ...last.data, stationboard: upcoming }, station);
+      else boardResults.append(el('p', { className: 'msg', textContent: 'Die gespeicherten Abfahrten sind alle vorbei.' }));
       boardResults.prepend(staleNote(last));
     } else {
       boardResults.append(errorBox(err));

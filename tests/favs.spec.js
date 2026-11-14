@@ -104,10 +104,12 @@ test('Langsame ältere Suche überschreibt die neuere nicht', async ({ page }) =
   await page.locator('#conn-from').fill('Zürich HB');
   await page.locator('#conn-to').fill('Chur');
   await page.getByRole('button', { name: 'Verbindungen suchen' }).click();
+  const churDone = page.waitForResponse(/\/v1\/connections.*to=Chur/, { timeout: 40_000 });
   await page.locator('#conn-to').fill('Bern');
   await page.getByRole('button', { name: 'Verbindungen suchen' }).click();
   await expect(page.locator('#conn-results .result-head')).toContainText('Zürich HB → Bern', { timeout: 30_000 });
-  await page.waitForTimeout(5000); // the Chur answer arrives meanwhile
+  await churDone; // the older answer has arrived
+  await page.waitForTimeout(500);
   await expect(page.locator('#conn-results .result-head')).toContainText('Zürich HB → Bern');
 });
 
