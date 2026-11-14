@@ -1,14 +1,11 @@
 package com.lightticket.sbb
 
-import android.app.Activity
+import android.Manifest
 import android.graphics.BitmapFactory
-import android.view.WindowManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,26 +17,51 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lightticket.sbb.data.Connection
 import com.lightticket.sbb.data.Departure
 import com.lightticket.sbb.data.Ticket
 import com.lightticket.sbb.ui.SbbLightTheme
+import com.thelightphone.sdk.InitialScreen
+import com.thelightphone.sdk.LightMedia
+import com.thelightphone.sdk.LightScreen
+import com.thelightphone.sdk.SealedLightActivity
+import com.thelightphone.sdk.checkPermission
+import com.thelightphone.sdk.rememberPermissionRequestLauncher
+import com.thelightphone.sdk.shared.LightServiceMethod
+import com.thelightphone.sdk.shared.asKotlinResult
+import kotlinx.coroutines.launch
 
 /**
- * Entry composable rendered by the light-sdk host. Three tabs — Fahrplan,
- * Abfahrten, Tickets — plus a fullscreen ticket viewer for showing a barcode.
+ * Boot screen of the tool. The light-sdk finds it via @InitialScreen (KSP) and
+ * renders [Content]. Three tabs — Fahrplan, Abfahrten, Tickets — plus a
+ * fullscreen ticket viewer for showing a barcode.
  */
+@InitialScreen
+class HomeScreen(sealedActivity: SealedLightActivity) :
+    LightScreen<Unit, HomeScreenViewModel>(sealedActivity) {
+
+    override val viewModelClass: Class<HomeScreenViewModel>
+        get() = HomeScreenViewModel::class.java
+
+    override fun createViewModel(): HomeScreenViewModel =
+        HomeScreenViewModel(lightContext.filesDir, lightContext.media)
+
+    @Composable
+    override fun Content() {
+        SbbLightApp(viewModel)
+    }
+}
+
 @Composable
-fun HomeScreen(vm: HomeScreenViewModel = viewModel()) {
+private fun SbbLightApp(vm: HomeScreenViewModel) {
     SbbLightTheme {
         val tab by vm.tab.collectAsState()
         var viewing by remember { mutableStateOf<Ticket?>(null) }
@@ -59,6 +81,14 @@ fun HomeScreen(vm: HomeScreenViewModel = viewModel()) {
                         Tab.ABFAHRTEN -> AbfahrtenScreen(vm)
                         Tab.TICKETS -> TicketsScreen(vm, onShow = { viewing = it })
                     }
+                }
+                if (tab != Tab.TICKETS) {
+                    // Quellenangabe für die Fahrplandaten (Konzept, Abschnitt 6.1).
+                    Text(
+                        "Fahrplandaten: opentransportdata.swiss",
+                        style = muted(),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
                 }
             }
         }
@@ -189,6 +219,7 @@ private fun DepartureRow(d: Departure) {
 @Composable
 private fun TicketsScreen(vm: HomeScreenViewModel, onShow: (Ticket) -> Unit) {
     val tickets by vm.tickets.collectAsState()
+    val ticketError by vm.ticketError.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -197,6 +228,12 @@ private fun TicketsScreen(vm: HomeScreenViewModel, onShow: (Ticket) -> Unit) {
                 "SBB-Tickets als Bild hinzu und zeige ihn dem Kontrollpersonal.",
             style = muted(),
         )
+        ticketError?.let { msg ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(msg, Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                OutlinedButton(onClick = vm::clearTicketError) { Text("OK") }
+            }
+        }
         PrimaryButton("Ticket hinzufügen") { showAdd = true }
         if (tickets.isEmpty()) {
             Text("Noch keine Tickets gespeichert.", style = muted())
@@ -209,9 +246,10 @@ private fun TicketsScreen(vm: HomeScreenViewModel, onShow: (Ticket) -> Unit) {
 
     if (showAdd) {
         AddTicketDialog(
+            vm = vm,
             onDismiss = { showAdd = false },
-            onSave = { title, from, to, note, uri ->
-                vm.addTicket(title, from, to, note, uri)
+            onSave = { title, from, to, note, image ->
+                vm.addTicket(title, from, to, note, image)
                 showAdd = false
             },
         )
@@ -239,17 +277,27 @@ private fun TicketCard(t: Ticket, onShow: (Ticket) -> Unit, onDelete: () -> Unit
 
 @Composable
 private fun AddTicketDialog(
+    vm: HomeScreenViewModel,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, String, android.net.Uri) -> Unit,
+    onSave: (String, String, String, String, LightMedia.Item.Image) -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
     var fromDate by remember { mutableStateOf("") }
     var toDate by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
-    var picked by remember { mutableStateOf<android.net.Uri?>(null) }
+    var picked by remember { mutableStateOf<LightMedia.Item.Image?>(null) }
+    var choosing by remember { mutableStateOf(false) }
+    var hint by remember { mutableStateOf<String?>(null) }
+    val images by vm.images.collectAsState()
 
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        picked = uri
+    // Bild-Auswahl über lightContext.media (READ_MEDIA_IMAGES). Der Android
+    // Photo Picker (androidx.activity) ist im light-sdk gesperrt.
+    val permissionLauncher = rememberPermissionRequestLauncher(Manifest.permission.READ_MEDIA_IMAGES)
+    val scope = rememberCoroutineScope()
+
+    var pickedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(picked) {
+        pickedBitmap = picked?.let { runCatching { vm.decodeImage(it) }.getOrNull() }
     }
 
     AlertDialog(
@@ -263,15 +311,51 @@ private fun AddTicketDialog(
         dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Abbrechen") } },
         title = { Text("Ticket hinzufügen") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Field("Titel", title) { title = it }
                 Field("Gültig ab (JJJJ-MM-TT)", fromDate) { fromDate = it }
                 Field("Gültig bis (JJJJ-MM-TT)", toDate) { toDate = it }
                 Field("Notiz", note) { note = it }
                 OutlinedButton(onClick = {
-                    picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    scope.launch {
+                        val granted = checkPermission(Manifest.permission.READ_MEDIA_IMAGES).asKotlinResult
+                            .map { it.permissionResult == LightServiceMethod.GetPermission.Result.Granted }
+                            .getOrDefault(false)
+                        if (granted) {
+                            hint = null
+                            choosing = true
+                            vm.loadImages()
+                        } else {
+                            hint = "Zugriff auf Bilder erlauben, dann erneut tippen."
+                            permissionLauncher?.launch()
+                        }
+                    }
                 }) { Text(if (picked == null) "Barcode-Bild wählen" else "Bild gewählt ✓") }
-                picked?.let { BarcodeThumb(uri = it, size = 120) }
+                hint?.let { Text(it, style = muted()) }
+                if (choosing) {
+                    when (val list = images) {
+                        null -> Text("Laden…", style = muted())
+                        else -> if (list.isEmpty()) {
+                            Text("Keine Bilder gefunden.", style = muted())
+                        } else {
+                            list.take(30).forEach { img ->
+                                Text(
+                                    img.name,
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable { picked = img; choosing = false }
+                                        .padding(vertical = 8.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                }
+                if (picked != null) BarcodeThumb(bitmap = pickedBitmap, size = 120)
             }
         },
     )
@@ -280,13 +364,10 @@ private fun AddTicketDialog(
 /* ------------------------- Fullscreen viewer ------------------------- */
 @Composable
 private fun TicketViewer(t: Ticket, onClose: () -> Unit) {
-    // Keep the screen on and bright while a barcode is shown for scanning.
-    val context = LocalContext.current
-    DisposableEffect(Unit) {
-        val window = (context as? Activity)?.window
-        window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        onDispose { window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
-    }
+    // TODO(Etappe 2): Bildschirm wach halten und Helligkeit maximal, solange
+    // ein Barcode gezeigt wird. Der bisherige Weg über das Activity-Fenster
+    // (FLAG_KEEP_SCREEN_ON) ist im light-sdk gesperrt (kein Zugriff auf
+    // Activity/Context); eine SDK-Schnittstelle dafür ist nicht belegt.
     // Always light for scannability, regardless of system theme.
     Surface(color = androidx.compose.ui.graphics.Color.White) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -314,17 +395,15 @@ private fun TicketViewer(t: Ticket, onClose: () -> Unit) {
 
 /* ------------------------- shared bits ------------------------- */
 @Composable
-private fun BarcodeThumb(path: String? = null, uri: android.net.Uri? = null, size: Int) {
-    val context = LocalContext.current
-    val bitmap = remember(path, uri) {
-        try {
-            when {
-                path != null -> BitmapFactory.decodeFile(path)
-                uri != null -> context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
-                else -> null
-            }?.asImageBitmap()
-        } catch (_: Exception) { null }
+private fun BarcodeThumb(path: String, size: Int) {
+    val bitmap = remember(path) {
+        try { BitmapFactory.decodeFile(path)?.asImageBitmap() } catch (_: Exception) { null }
     }
+    BarcodeThumb(bitmap = bitmap, size = size)
+}
+
+@Composable
+private fun BarcodeThumb(bitmap: ImageBitmap?, size: Int) {
     Box(
         Modifier.size(size.dp).background(androidx.compose.ui.graphics.Color.White)
             .border(1.dp, MaterialTheme.colorScheme.outline),
@@ -412,6 +491,4 @@ private fun formatDur(min: Int): String {
     return if (h > 0) "${h}h ${m.toString().padStart(2, '0')}" else "$m min"
 }
 
-/* A minimal clickable modifier without pulling in extra deps beyond foundation. */
-private fun Modifier.clickableTab(onClick: () -> Unit): Modifier =
-    this.then(androidx.compose.foundation.clickable(onClickLabel = null, role = null) { onClick() })
+private fun Modifier.clickableTab(onClick: () -> Unit): Modifier = this.clickable { onClick() }

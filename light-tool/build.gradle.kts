@@ -1,52 +1,87 @@
 /*
- * Build config for the SBB Light `:tool` module.
+ * Build-Skript des `:tool`-Moduls von SBB Light.
  *
- * This mirrors the light-sdk `:tool` scaffold: the module applies the Android
- * + Kotlin/Compose plugins and depends on the SDK client library. Versions and
- * the exact plugin ids come from your light-sdk fork's version catalog — align
- * this file with `examples/authenticator/build.gradle.kts` after cloning.
+ * Diese Datei ersetzt im light-sdk-Checkout `tool/build.gradle.kts` (siehe
+ * light-tool/ci/prepare.sh). Sie folgt dem `tool/`-Gerüst und
+ * `examples/weather` des gepinnten light-sdk-Stands:
+ *  - Plugins und Versionen kommen aus dem Version-Catalog des light-sdk
+ *    (`gradle/libs.versions.toml`); nur Plugins aus der SDK-Allowlist.
+ *  - applicationId, namespace, versionCode und versionName stehen NICHT hier,
+ *    sondern in `lighttool.toml` (das SDK-Plugin verbietet sie hier).
+ *  - Abhängigkeiten nur aus der SDK-Allowlist
+ *    (plugin/src/main/resources/com/thelightphone/plugin/allowed-dependencies.txt).
  *
- * Deliberately dependency-light: networking uses java.net.HttpURLConnection and
- * JSON uses android's bundled org.json, so we avoid third-party libraries that
- * the SDK restricts. Only Compose + Coroutines are used, both recommended.
+ * Netzwerk über java.net.HttpURLConnection, JSON über das in Android
+ * enthaltene org.json; keine Fremdbibliotheken.
  */
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    // KSP + light-sdk-Plugin: erzeugen die LightSdkRegistry (@InitialScreen,
+    // @EntryPoint) und das Manifest aus lighttool.toml.
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.light.sdk)
 }
 
 android {
-    namespace = "com.lightticket.sbb"
-    compileSdk = 34
+    compileSdk = rootProject.ext["compileSdk"] as Int
+
+    signingConfigs {
+        // Öffentlicher Entwicklungs-Schlüssel, der im light-sdk liegt
+        // (sdk/keys/lightsdk-dev.jks, Passwort "android"). Kein Geheimnis;
+        // Light signiert veröffentlichte Tools selbst.
+        create("lightsdkDev") {
+            storeFile = file("../sdk/keys/lightsdk-dev.jks")
+            storePassword = "android"
+            keyAlias = "lightsdk-dev"
+            keyPassword = "android"
+            enableV3Signing = true
+            enableV4Signing = true
+        }
+    }
 
     defaultConfig {
-        applicationId = "com.lightticket.sbb"
-        minSdk = 30
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        minSdk = rootProject.ext["minSdk"] as Int
+        targetSdk = rootProject.ext["targetSdk"] as Int
+
+        manifestPlaceholders["sdkVersion"] = property("sdkVersion") as String
     }
 
-    buildFeatures {
-        compose = true
+    buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("lightsdkDev")
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            signingConfig = signingConfigs.getByName("lightsdkDev")
+        }
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    lint {
+        warningsAsErrors = false
+        error += "RestrictedApi"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.toVersion(rootProject.ext["jvmTarget"] as String)
+        targetCompatibility = JavaVersion.toVersion(rootProject.ext["jvmTarget"] as String)
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(rootProject.ext["jvmTarget"] as String))
     }
 }
 
 dependencies {
-    // The Light SDK client library — provides LightOS primitives and the host.
+    // Light-SDK-Client: LightScreen, LightViewModel, lightContext (filesDir,
+    // media), Berechtigungen. Bringt per `api` Compose (BOM, foundation,
+    // material3), Lifecycle und Coroutines mit, darum keine weiteren Einträge.
     implementation(project(":sdk:client"))
 
-    // Recommended stack per the SDK docs.
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.activity:activity-compose:1.9.2")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
-    implementation("androidx.compose.ui:ui:1.7.3")
-    implementation("androidx.compose.foundation:foundation:1.7.3")
-    implementation("androidx.compose.material3:material3:1.3.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    testImplementation(libs.kotlin.test)
 }

@@ -1,0 +1,78 @@
+name: Light Tool APK
+
+# Baut das Light-Phone-III-Tool «SBB Light» (light-tool/) als Debug-APK im
+# gepinnten light-sdk (light-tool/ci/light-sdk.ref) und lädt es als Artefakt hoch.
+# Keine Secrets nötig: signiert wird mit dem öffentlichen Entwicklungs-Schlüssel
+# aus dem light-sdk.
+
+on:
+  pull_request:
+    paths:
+      - 'light-tool/**'
+      - '.github/workflows/light-tool-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  assemble-debug:
+    name: assembleDebug
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout lightTicket
+        uses: actions/checkout@v4
+
+      - name: light-sdk-Commit lesen
+        id: sdk
+        run: |
+          ref="$(tr -d '[:space:]' < light-tool/ci/light-sdk.ref)"
+          if ! [[ "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::light-sdk.ref ist keine volle Commit-SHA: '$ref'"
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout light-sdk (gepinnt)
+        uses: actions/checkout@v4
+        with:
+          repository: lightphone/light-sdk
+          ref: ${{ steps.sdk.outputs.ref }}
+          path: light-sdk
+          persist-credentials: false
+
+      - name: SBB Light ins :tool-Modul einsetzen
+        run: light-tool/ci/prepare.sh light-sdk
+
+      # Das light-sdk-Plugin verlangt eine Java-17-Toolchain.
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Android-SDK ist auf ubuntu-latest vorinstalliert ($ANDROID_HOME);
+      # fehlende Plattformen lädt das Android-Gradle-Plugin selbst nach.
+      - name: Debug-APK bauen
+        working-directory: light-sdk
+        run: ./gradlew --stacktrace -DlightSdk.toolOnly=true :tool:assembleDebug
+
+      - name: APK auflisten
+        run: ls -l light-sdk/tool/build/outputs/apk/debug/
+
+      - name: APK hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbb-light-debug-apk
+          path: light-sdk/tool/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
