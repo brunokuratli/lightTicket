@@ -6,6 +6,9 @@ ablenkungsfrei, offline-fähig, ohne Tracking und ohne Konto.
 
 - **Fahrplan** – Verbindungen von A nach B suchen (Datum/Zeit, ab/an).
 - **Abfahrten** – Live-Abfahrtstafel für jede Haltestelle.
+- **Favoriten** – bis 5 Strecken und 5 Haltestellen, mit einem Tipp gesucht.
+- **Ohne Netz** – zuletzt gesuchte Strecken und Abfahrten mit Hinweis
+  «Ohne Echtzeit, Stand hh:mm».
 - **Tickets** – gekaufte SBB-Billette als **Original-PDF** (oder Bild) ablegen
   und dem Kontrollpersonal zeigen: QR-Code gross oder ganze Seite, auch offline.
 
@@ -117,7 +120,8 @@ löschen; als App auf dem Home-Bildschirm installiert ist das nicht der Fall.
 | Bereich        | Umsetzung                                          |
 |----------------|----------------------------------------------------|
 | Fahrplan       | `transport.opendata.ch/v1` (locations/connections/stationboard) |
-| Speicher       | IndexedDB (Original-PDF, gerenderte Seiten, QR-Ausschnitt), localStorage (Ansicht) |
+| Speicher       | IndexedDB (Original-PDF, gerenderte Seiten, QR-Ausschnitt), localStorage (Ansicht, Favoriten, letzte 8 Ergebnisse je Art) |
+| API-Schonung   | gleiche Anfrage innerhalb 30 s aus dem lokalen Ergebnis (Bitte von transport.opendata.ch), Zeitlimit 15 s |
 | PDF / QR       | pdf.js 4.10.38 (Legacy-Build) und jsQR 1.4.0, beide Apache-2.0, lokal in `vendor/`, erst beim Import geladen |
 | Offline        | Service Worker (App-Hülle und Bibliotheken vorab gespeichert, eigene Dateien zuerst aus dem Netz, API nur Netz) |
 | Abhängigkeiten | keine Build-Schritte; Laufzeit nur `vendor/`        |
@@ -127,6 +131,5 @@ löschen; als App auf dem Home-Bildschirm installiert ist das nicht der Fall.
 
 - Verbindungs-Detailansicht mit allen Zwischenhalten.
 - Light Phone III: PDF-Billett im nativen Tool (Etappe 2 im Konzept).
-- Favoriten für häufige Strecken/Haltestellen.
 - Einreichung als Light-Phone-Tool, sobald die Tool-Library-Spezifikation
   öffentlich ist.

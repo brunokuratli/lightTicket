@@ -25,6 +25,7 @@
   <main>
     <!-- ============ FAHRPLAN (connections) ============ -->
     <section id="fahrplan" class="view" data-view="fahrplan">
+      <div id="conn-favs" class="favs" aria-label="Favoriten" hidden></div>
       <form id="conn-form" class="form" autocomplete="off">
         <label>Von
           <input id="conn-from" name="from" list="stations-from" placeholder="z. B. Bern" required />
@@ -57,6 +58,7 @@
 
     <!-- ============ ABFAHRTEN (stationboard) ============ -->
     <section id="abfahrten" class="view" data-view="abfahrten" hidden>
+      <div id="board-favs" class="favs" aria-label="Favoriten" hidden></div>
       <form id="board-form" class="form" autocomplete="off">
         <label>Haltestelle
           <input id="board-station" name="station" list="stations-board" placeholder="z. B. Luzern" required />

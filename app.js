@@ -34,14 +34,81 @@ const fmtDur = (dur) => {
   return hours > 0 ? `${hours}h ${pad(mi)}` : `${mi} min`;
 };
 
+const API_TIMEOUT = 15000; // ms; then the last stored result is shown instead
+
 async function api(path, params) {
   const url = new URL(API + path);
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
   }
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = ctrl && setTimeout(() => ctrl.abort(), API_TIMEOUT);
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl && ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    if (err && err.name === 'AbortError') throw new Error('Zeitüberschreitung');
+    throw err;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/* ---------------- local store: favourites and last results ----------------
+ * Everything here stays in localStorage on this device.
+ * Last results: one entry per route / station (newest 8 each). They are shown
+ * when the network fails, clearly marked «ohne Echtzeit, Stand hh:mm», and an
+ * identical request within 30 s is answered from them (transport.opendata.ch
+ * asks clients to cache instead of repeating requests). */
+const store = {
+  get(key, fallback) {
+    try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (_) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { return false; }
+  },
+};
+const FAV_MAX = 5;
+const LAST_MAX = 8;
+const SAME_REQUEST_MS = 30000;
+const norm = (s) => String(s || '').trim().toLowerCase();
+
+function lastGet(kind, key) {
+  return store.get('sbb.last.' + kind, []).find((e) => e.key === key) || null;
+}
+function lastPut(kind, key, params, data) {
+  const list = store.get('sbb.last.' + kind, []).filter((e) => e.key !== key);
+  list.unshift({ key, params, at: Date.now(), data });
+  // drop the oldest until it fits (localStorage is a few MB)
+  for (let n = Math.min(list.length, LAST_MAX); n > 0; n--) {
+    if (store.set('sbb.last.' + kind, list.slice(0, n))) return;
+  }
+}
+function staleNote(entry) {
+  const d = new Date(entry.at);
+  const today = new Date().toDateString() === d.toDateString();
+  const when = (today ? '' : `${pad(d.getDate())}.${pad(d.getMonth() + 1)}. `) + `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const why = !navigator.onLine ? 'Keine Internetverbindung' : 'Fahrplan gerade nicht erreichbar';
+  return el('div', { className: 'stale' }, [
+    el('strong', { textContent: `Ohne Echtzeit, Stand ${when}` }),
+    el('p', { textContent: `${why}. Gezeigt wird das letzte Ergebnis dieser Suche; Verspätungen und Gleise können sich geändert haben.` }),
+  ]);
+}
+
+function favList(kind) { return store.get('sbb.fav.' + kind, []); }
+function favSave(kind, list) { store.set('sbb.fav.' + kind, list.slice(0, FAV_MAX)); }
+function favHas(kind, key) { return favList(kind).some((f) => f.key === key); }
+function favToggle(kind, fav) {
+  const list = favList(kind);
+  const i = list.findIndex((f) => f.key === fav.key);
+  if (i >= 0) list.splice(i, 1);
+  else {
+    if (list.length >= FAV_MAX) { alert(`Höchstens ${FAV_MAX} Favoriten. Bitte zuerst einen entfernen.`); return false; }
+    list.push(fav);
+  }
+  favSave(kind, list);
+  return true;
 }
 
 /* ---------------- tab navigation ---------------- */
@@ -88,25 +155,90 @@ connForm.addEventListener('submit', async (e) => {
   const from = $('#conn-from').value.trim();
   const to = $('#conn-to').value.trim();
   if (!from || !to) return;
+  const params = {
+    from, to,
+    date: $('#conn-date').value,
+    time: $('#conn-time').value,
+    isArrivalTime: $('#conn-mode').value,
+    limit: 6,
+  };
+  const key = `${norm(from)}|${norm(to)}`;
+  const last = lastGet('conn', key);
   connResults.innerHTML = '';
   connResults.append(el('p', { className: 'msg loading', textContent: 'Suche' }));
   try {
-    const data = await api('/connections', {
-      from, to,
-      date: $('#conn-date').value,
-      time: $('#conn-time').value,
-      isArrivalTime: $('#conn-mode').value,
-      limit: 6,
-    });
-    renderConnections(data.connections || []);
+    let data;
+    if (last && Date.now() - last.at < SAME_REQUEST_MS && JSON.stringify(last.params) === JSON.stringify(params)) {
+      data = last.data;
+    } else {
+      data = await api('/connections', params);
+      lastPut('conn', key, params, { connections: data.connections || [] });
+    }
+    renderConnections(data.connections || [], { from, to, key });
   } catch (err) {
     connResults.innerHTML = '';
-    connResults.append(errorBox(err));
+    if (last) {
+      renderConnections(last.data.connections || [], { from, to, key });
+      connResults.prepend(staleNote(last));
+    } else {
+      connResults.append(errorBox(err));
+    }
   }
 });
 
-function renderConnections(conns) {
+function favButton(kind, fav, onChange) {
+  const label = () => (favHas(kind, fav.key) ? '★ Favorit' : '☆ Als Favorit merken');
+  const b = el('button', { type: 'button', className: 'fav-toggle', textContent: label() });
+  b.setAttribute('aria-pressed', String(favHas(kind, fav.key)));
+  b.addEventListener('click', () => {
+    if (favToggle(kind, fav)) {
+      b.textContent = label();
+      b.setAttribute('aria-pressed', String(favHas(kind, fav.key)));
+      onChange();
+    }
+  });
+  return b;
+}
+
+function renderFavs(kind, box, onPick) {
+  const list = favList(kind);
+  box.replaceChildren(...list.map((f) => el('span', { className: 'fav' }, [
+    el('button', { type: 'button', className: 'fav-go', textContent: f.label, onclick: () => onPick(f) }),
+    el('button', {
+      type: 'button', className: 'fav-del', textContent: '✕',
+      title: `${f.label} entfernen`, ariaLabel: `${f.label} entfernen`,
+      onclick: () => { favSave(kind, favList(kind).filter((x) => x.key !== f.key)); renderFavs(kind, box, onPick); },
+    }),
+  ])));
+  box.hidden = !list.length;
+}
+const connFavs = $('#conn-favs');
+const boardFavs = $('#board-favs');
+function nowFields() {
+  const now = new Date();
+  $('#conn-date').value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  $('#conn-time').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  $('#conn-mode').value = '0';
+}
+const showConnFavs = () => renderFavs('conn', connFavs, (f) => {
+  $('#conn-from').value = f.from;
+  $('#conn-to').value = f.to;
+  nowFields(); // a favourite means «next connections from now»
+  connForm.requestSubmit ? connForm.requestSubmit() : connForm.dispatchEvent(new Event('submit', { cancelable: true }));
+});
+const showBoardFavs = () => renderFavs('board', boardFavs, (f) => {
+  $('#board-station').value = f.station;
+  boardForm.requestSubmit ? boardForm.requestSubmit() : boardForm.dispatchEvent(new Event('submit', { cancelable: true }));
+});
+
+function renderConnections(conns, route) {
   connResults.innerHTML = '';
+  if (route) {
+    connResults.append(el('div', { className: 'result-head' }, [
+      el('span', { className: 'msg', textContent: `${route.from} → ${route.to}` }),
+      favButton('conn', { key: route.key, from: route.from, to: route.to, label: `${route.from} → ${route.to}` }, showConnFavs),
+    ]));
+  }
   if (!conns.length) {
     connResults.append(el('p', { className: 'msg', textContent: 'Keine Verbindungen gefunden.' }));
     return;
@@ -149,25 +281,43 @@ boardForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const station = $('#board-station').value.trim();
   if (!station) return;
+  const params = { station, limit: 14 };
+  const key = norm(station);
+  const last = lastGet('board', key);
   boardResults.innerHTML = '';
   boardResults.append(el('p', { className: 'msg loading', textContent: 'Laden' }));
   try {
-    const data = await api('/stationboard', { station, limit: 14 });
-    renderBoard(data);
+    let data;
+    if (last && Date.now() - last.at < SAME_REQUEST_MS) {
+      data = last.data;
+    } else {
+      data = await api('/stationboard', params);
+      lastPut('board', key, params, { station: data.station, stationboard: data.stationboard || [] });
+    }
+    renderBoard(data, station);
   } catch (err) {
     boardResults.innerHTML = '';
-    boardResults.append(errorBox(err));
+    if (last) {
+      renderBoard(last.data, station);
+      boardResults.prepend(staleNote(last));
+    } else {
+      boardResults.append(errorBox(err));
+    }
   }
 });
 
-function renderBoard(data) {
+function renderBoard(data, query) {
   boardResults.innerHTML = '';
   const list = data.stationboard || [];
   if (!list.length) {
     boardResults.append(el('p', { className: 'msg', textContent: 'Keine Abfahrten gefunden.' }));
     return;
   }
-  boardResults.append(el('p', { className: 'msg', textContent: (data.station && data.station.name) || '' }));
+  const name = (data.station && data.station.name) || query || '';
+  boardResults.append(el('div', { className: 'result-head' }, [
+    el('span', { className: 'msg', textContent: name }),
+    favButton('board', { key: norm(query || name), station: query || name, label: name }, showBoardFavs),
+  ]));
   for (const s of list) {
     const stop = s.stop || {};
     const delay = stop.delay ? el('span', { className: 'delay', textContent: ` +${stop.delay}` }) : '';
@@ -186,7 +336,7 @@ function errorBox(err) {
   return el('div', { className: 'err' }, [
     el('strong', { textContent: offline ? 'Keine Internetverbindung' : 'Fehler beim Laden' }),
     el('p', { className: 'msg', textContent: offline
-      ? 'Der Fahrplan braucht Internet. Deine Tickets funktionieren aber auch offline.'
+      ? 'Der Fahrplan braucht Internet; zuletzt gesuchte Strecken werden ohne Netz mit Zeitstempel gezeigt. Deine Tickets funktionieren auch offline.'
       : `Bitte später erneut versuchen. (${err.message})` }),
   ]);
 }
@@ -489,9 +639,9 @@ window.addEventListener('offline', updateNet);
 /* ---------------- init ---------------- */
 function init() {
   // default date/time = now
-  const now = new Date();
-  $('#conn-date').value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  $('#conn-time').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  nowFields();
+  showConnFavs();
+  showBoardFavs();
 
   attachAutocomplete($('#conn-from'), $('#stations-from'));
   attachAutocomplete($('#conn-to'), $('#stations-to'));

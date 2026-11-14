@@ -286,3 +286,21 @@ dialog {
 }
 dialog::backdrop { background: rgba(0,0,0,0.5); }
 dialog h2 { margin: 0 0 8px; }
+
+/* ---------- Favourites and last results ---------- */
+.favs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.favs[hidden] { display: none; }
+.fav { display: inline-flex; border: 2px solid var(--line); border-radius: var(--radius); }
+.fav button { background: var(--bg); color: var(--fg); border: 0; font-size: 16px; min-height: 44px; }
+.fav-go { padding: 0 12px; font-weight: 700; }
+.fav-del { padding: 0 10px; border-left: 1px solid var(--line-soft) !important; color: var(--muted) !important; }
+.result-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.result-head .msg { padding: 0; font-weight: 700; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fav-toggle {
+  flex: none; min-height: 40px; padding: 0 10px;
+  background: var(--bg); color: var(--fg);
+  border: 2px solid var(--line); border-radius: var(--radius); font-size: 14px;
+}
+.fav-toggle[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 700; }
+.stale { border: 2px dashed var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.stale p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
