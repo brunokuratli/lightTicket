@@ -82,6 +82,14 @@ private fun SbbLightApp(vm: HomeScreenViewModel) {
                         Tab.TICKETS -> TicketsScreen(vm, onShow = { viewing = it })
                     }
                 }
+                if (tab != Tab.TICKETS) {
+                    // Quellenangabe für die Fahrplandaten (Konzept, Abschnitt 6.1).
+                    Text(
+                        "Fahrplandaten: opentransportdata.swiss",
+                        style = muted(),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
             }
         }
 

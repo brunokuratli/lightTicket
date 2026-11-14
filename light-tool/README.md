@@ -74,6 +74,8 @@ Gegenüber dem ersten Gerüst, damit es gegen den echten SDK-Stand baut:
   durch eine einfache Liste aus dem Album über `lightContext.media`
   (Berechtigung `READ_MEDIA_IMAGES`, Abfrage über `checkPermission`).
 - `TicketStore` nimmt `filesDir` statt `Context` (`contentResolver` gesperrt).
+- Quellenangabe «Fahrplandaten: opentransportdata.swiss» unter den Tabs
+  Fahrplan und Abfahrten ergänzt.
 - Bildschirm-wach-halten im Ticket-Viewer entfernt (brauchte Activity-Zugriff,
   gesperrt). Offen für Etappe 2.
 
