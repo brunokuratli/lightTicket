@@ -1,0 +1,1203 @@
+{
+ "connections": [
+  {
+   "from": {
+    "station": {
+     "id": "8590048",
+     "name": "Bern, Bundesplatz",
+     "score": null,
+     "coordinate": {
+      "type": "WGS84",
+      "x": 46.947047,
+      "y": 7.443926
+     },
+     "distance": null
+    },
+    "arrival": null,
+    "arrivalTimestamp": null,
+    "departure": "2026-11-16T08:01:00+0100",
+    "departureTimestamp": 1794812460,
+    "delay": null,
+    "platform": null,
+    "prognosis": {
+     "platform": null,
+     "arrival": null,
+     "departure": null,
+     "capacity1st": null,
+     "capacity2nd": null
+    },
+    "realtimeAvailability": null,
+    "location": {
+     "id": "8590048",
+     "name": "Bern, Bundesplatz",
+     "score": null,
+     "coordinate": {
+      "type": "WGS84",
+      "x": 46.947047,
+      "y": 7.443926
+     },
+     "distance": null
+    }
+   },
+   "to": {
+    "station": {
+     "id": "8507100",
+     "name": "Thun",
+     "score": null,
+     "coordinate": {
+      "type": "WGS84",
+      "x": 46.754852,
+      "y": 7.629607
+     },
+     "distance": null
+    },
+    "arrival": "2026-11-16T08:26:00+0100",
+    "arrivalTimestamp": 1794813960,
+    "departure": null,
+    "departureTimestamp": null,
+    "delay": null,
+    "platform": "2",
+    "prognosis": {
+     "platform": null,
+     "arrival": null,
+     "departure": null,
+     "capacity1st": null,
+     "capacity2nd": null
+    },
+    "realtimeAvailability": null,
+    "location": {
+     "id": "8507100",
+     "name": "Thun",
+     "score": null,
+     "coordinate": {
+      "type": "WGS84",
+      "x": 46.754852,
+      "y": 7.629607
+     },
+     "distance": null
+    }
+   },
+   "duration": "00d00:25:00",
+   "transfers": 1,
+   "service": null,
+   "products": [
+    "10",
+    "IC 8"
+   ],
+   "capacity1st": null,
+   "capacity2nd": null,
+   "sections": [
+    {
+     "journey": {
+      "name": "054337",
+      "category": "B",
+      "subcategory": null,
+      "categoryCode": null,
+      "number": "10",
+      "operator": "SVB Auto",
+      "to": "Schliern, Bus-Endstation",
+      "passList": [
+       {
+        "station": {
+         "id": "8590048",
+         "name": "Bern, Bundesplatz",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.947047,
+          "y": 7.443926
+         },
+         "distance": null
+        },
+        "arrival": null,
+        "arrivalTimestamp": null,
+        "departure": "2026-11-16T08:01:00+0100",
+        "departureTimestamp": 1794812460,
+        "delay": null,
+        "platform": null,
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8590048",
+         "name": "Bern, Bundesplatz",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.947047,
+          "y": 7.443926
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8576646",
+         "name": "Bern, Bahnhof",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.948107,
+          "y": 7.440207
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:02:00+0100",
+        "arrivalTimestamp": 1794812520,
+        "departure": null,
+        "departureTimestamp": null,
+        "delay": null,
+        "platform": "I",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8576646",
+         "name": "Bern, Bahnhof",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.948107,
+          "y": 7.440207
+         },
+         "distance": null
+        }
+       }
+      ],
+      "capacity1st": null,
+      "capacity2nd": null
+     },
+     "walk": null,
+     "departure": {
+      "station": {
+       "id": "8590048",
+       "name": "Bern, Bundesplatz",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.947047,
+        "y": 7.443926
+       },
+       "distance": null
+      },
+      "arrival": null,
+      "arrivalTimestamp": null,
+      "departure": "2026-11-16T08:01:00+0100",
+      "departureTimestamp": 1794812460,
+      "delay": null,
+      "platform": null,
+      "prognosis": {
+       "platform": null,
+       "arrival": null,
+       "departure": null,
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8590048",
+       "name": "Bern, Bundesplatz",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.947047,
+        "y": 7.443926
+       },
+       "distance": null
+      }
+     },
+     "arrival": {
+      "station": {
+       "id": "8576646",
+       "name": "Bern, Bahnhof",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948107,
+        "y": 7.440207
+       },
+       "distance": null
+      },
+      "arrival": "2026-11-16T08:02:00+0100",
+      "arrivalTimestamp": 1794812520,
+      "departure": null,
+      "departureTimestamp": null,
+      "delay": null,
+      "platform": "I",
+      "prognosis": {
+       "platform": null,
+       "arrival": null,
+       "departure": null,
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8576646",
+       "name": "Bern, Bahnhof",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948107,
+        "y": 7.440207
+       },
+       "distance": null
+      }
+     }
+    },
+    {
+     "journey": null,
+     "walk": {
+      "duration": 300
+     },
+     "departure": {
+      "station": {
+       "id": "8576646",
+       "name": "Bern, Bahnhof",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948107,
+        "y": 7.440207
+       },
+       "distance": null
+      },
+      "arrival": null,
+      "arrivalTimestamp": null,
+      "departure": "2026-11-16T08:02:00+0100",
+      "departureTimestamp": 1794812520,
+      "delay": null,
+      "platform": "I",
+      "prognosis": {
+       "platform": null,
+       "arrival": null,
+       "departure": null,
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8576646",
+       "name": "Bern, Bahnhof",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948107,
+        "y": 7.440207
+       },
+       "distance": null
+      }
+     },
+     "arrival": {
+      "station": {
+       "id": "8507000",
+       "name": "Bern",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948831,
+        "y": 7.439129
+       },
+       "distance": null
+      },
+      "arrival": "2026-11-16T08:07:00+0100",
+      "arrivalTimestamp": 1794812820,
+      "departure": null,
+      "departureTimestamp": null,
+      "delay": null,
+      "platform": "6",
+      "prognosis": {
+       "platform": null,
+       "arrival": null,
+       "departure": null,
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8507000",
+       "name": "Bern",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948831,
+        "y": 7.439129
+       },
+       "distance": null
+      }
+     }
+    },
+    {
+     "journey": {
+      "name": "010806",
+      "category": "IC",
+      "subcategory": null,
+      "categoryCode": null,
+      "number": "8",
+      "operator": "SBB",
+      "to": "Brig",
+      "passList": [
+       {
+        "station": {
+         "id": "8507000",
+         "name": "Bern",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.948831,
+          "y": 7.439129
+         },
+         "distance": null
+        },
+        "arrival": null,
+        "arrivalTimestamp": null,
+        "departure": "2026-11-16T08:07:00+0100",
+        "departureTimestamp": 1794812820,
+        "delay": null,
+        "platform": "6",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507000",
+         "name": "Bern",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.948831,
+          "y": 7.439129
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8507100",
+         "name": "Thun",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.754852,
+          "y": 7.629607
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:26:00+0100",
+        "arrivalTimestamp": 1794813960,
+        "departure": null,
+        "departureTimestamp": null,
+        "delay": null,
+        "platform": "2",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507100",
+         "name": "Thun",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.754852,
+          "y": 7.629607
+         },
+         "distance": null
+        }
+       }
+      ],
+      "capacity1st": null,
+      "capacity2nd": null
+     },
+     "walk": null,
+     "departure": {
+      "station": {
+       "id": "8507000",
+       "name": "Bern",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948831,
+        "y": 7.439129
+       },
+       "distance": null
+      },
+      "arrival": null,
+      "arrivalTimestamp": null,
+      "departure": "2026-11-16T08:07:00+0100",
+      "departureTimestamp": 1794812820,
+      "delay": 3,
+      "platform": "6",
+      "prognosis": {
+       "platform": "7",
+       "arrival": null,
+       "departure": "2026-11-16T08:10:00+0100",
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8507000",
+       "name": "Bern",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948831,
+        "y": 7.439129
+       },
+       "distance": null
+      }
+     },
+     "arrival": {
+      "station": {
+       "id": "8507100",
+       "name": "Thun",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.754852,
+        "y": 7.629607
+       },
+       "distance": null
+      },
+      "arrival": "2026-11-16T08:26:00+0100",
+      "arrivalTimestamp": 1794813960,
+      "departure": null,
+      "departureTimestamp": null,
+      "delay": null,
+      "platform": "2",
+      "prognosis": {
+       "platform": null,
+       "arrival": null,
+       "departure": null,
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8507100",
+       "name": "Thun",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.754852,
+        "y": 7.629607
+       },
+       "distance": null
+      }
+     }
+    }
+   ]
+  },
+  {
+   "from": {
+    "station": {
+     "id": "8590048",
+     "name": "Bern, Bundesplatz",
+     "score": null,
+     "coordinate": {
+      "type": "WGS84",
+      "x": 46.947047,
+      "y": 7.443926
+     },
+     "distance": null
+    },
+    "arrival": null,
+    "arrivalTimestamp": null,
+    "departure": "2026-11-16T08:05:00+0100",
+    "departureTimestamp": 1794812700,
+    "delay": null,
+    "platform": null,
+    "prognosis": {
+     "platform": null,
+     "arrival": null,
+     "departure": null,
+     "capacity1st": null,
+     "capacity2nd": null
+    },
+    "realtimeAvailability": null,
+    "location": {
+     "id": "8590048",
+     "name": "Bern, Bundesplatz",
+     "score": null,
+     "coordinate": {
+      "type": "WGS84",
+      "x": 46.947047,
+      "y": 7.443926
+     },
+     "distance": null
+    }
+   },
+   "to": {
+    "station": {
+     "id": "8507100",
+     "name": "Thun",
+     "score": null,
+     "coordinate": {
+      "type": "WGS84",
+      "x": 46.754852,
+      "y": 7.629607
+     },
+     "distance": null
+    },
+    "arrival": "2026-11-16T08:46:00+0100",
+    "arrivalTimestamp": 1794815160,
+    "departure": null,
+    "departureTimestamp": null,
+    "delay": null,
+    "platform": "4",
+    "prognosis": {
+     "platform": null,
+     "arrival": null,
+     "departure": null,
+     "capacity1st": null,
+     "capacity2nd": null
+    },
+    "realtimeAvailability": null,
+    "location": {
+     "id": "8507100",
+     "name": "Thun",
+     "score": null,
+     "coordinate": {
+      "type": "WGS84",
+      "x": 46.754852,
+      "y": 7.629607
+     },
+     "distance": null
+    }
+   },
+   "duration": "00d00:41:00",
+   "transfers": 0,
+   "service": null,
+   "products": [
+    "S1"
+   ],
+   "capacity1st": null,
+   "capacity2nd": null,
+   "sections": [
+    {
+     "journey": null,
+     "walk": {
+      "duration": 660
+     },
+     "departure": {
+      "station": {
+       "id": "8590048",
+       "name": "Bern, Bundesplatz",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.947047,
+        "y": 7.443926
+       },
+       "distance": null
+      },
+      "arrival": null,
+      "arrivalTimestamp": null,
+      "departure": "2026-11-16T08:05:00+0100",
+      "departureTimestamp": 1794812700,
+      "delay": null,
+      "platform": null,
+      "prognosis": {
+       "platform": null,
+       "arrival": null,
+       "departure": null,
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8590048",
+       "name": "Bern, Bundesplatz",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.947047,
+        "y": 7.443926
+       },
+       "distance": null
+      }
+     },
+     "arrival": {
+      "station": {
+       "id": "8507000",
+       "name": "Bern",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948831,
+        "y": 7.439129
+       },
+       "distance": null
+      },
+      "arrival": "2026-11-16T08:16:00+0100",
+      "arrivalTimestamp": 1794813360,
+      "departure": null,
+      "departureTimestamp": null,
+      "delay": null,
+      "platform": "10",
+      "prognosis": {
+       "platform": null,
+       "arrival": null,
+       "departure": null,
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8507000",
+       "name": "Bern",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948831,
+        "y": 7.439129
+       },
+       "distance": null
+      }
+     }
+    },
+    {
+     "journey": {
+      "name": "015127",
+      "category": "S",
+      "subcategory": null,
+      "categoryCode": null,
+      "number": "1",
+      "operator": "BLS-bls",
+      "to": "Thun",
+      "passList": [
+       {
+        "station": {
+         "id": "8507000",
+         "name": "Bern",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.948831,
+          "y": 7.439129
+         },
+         "distance": null
+        },
+        "arrival": null,
+        "arrivalTimestamp": null,
+        "departure": "2026-11-16T08:16:00+0100",
+        "departureTimestamp": 1794813360,
+        "delay": null,
+        "platform": "10",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507000",
+         "name": "Bern",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.948831,
+          "y": 7.439129
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8516161",
+         "name": "Bern Wankdorf",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.967826,
+          "y": 7.465476
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:19:00+0100",
+        "arrivalTimestamp": 1794813540,
+        "departure": "2026-11-16T08:19:00+0100",
+        "departureTimestamp": 1794813540,
+        "delay": null,
+        "platform": "3",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8516161",
+         "name": "Bern Wankdorf",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.967826,
+          "y": 7.465476
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8507002",
+         "name": "Ostermundigen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.956803,
+          "y": 7.481502
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:21:00+0100",
+        "arrivalTimestamp": 1794813660,
+        "departure": "2026-11-16T08:22:00+0100",
+        "departureTimestamp": 1794813720,
+        "delay": null,
+        "platform": "2",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507002",
+         "name": "Ostermundigen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.956803,
+          "y": 7.481502
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8507003",
+         "name": "Gümligen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.93432,
+          "y": 7.505505
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:25:00+0100",
+        "arrivalTimestamp": 1794813900,
+        "departure": "2026-11-16T08:25:00+0100",
+        "departureTimestamp": 1794813900,
+        "delay": null,
+        "platform": "1",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507003",
+         "name": "Gümligen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.93432,
+          "y": 7.505505
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8507005",
+         "name": "Rubigen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.899173,
+          "y": 7.545372
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:29:00+0100",
+        "arrivalTimestamp": 1794814140,
+        "departure": "2026-11-16T08:29:00+0100",
+        "departureTimestamp": 1794814140,
+        "delay": null,
+        "platform": "2",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507005",
+         "name": "Rubigen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.899173,
+          "y": 7.545372
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8507006",
+         "name": "Münsingen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.873356,
+          "y": 7.55944
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:32:00+0100",
+        "arrivalTimestamp": 1794814320,
+        "departure": "2026-11-16T08:32:00+0100",
+        "departureTimestamp": 1794814320,
+        "delay": null,
+        "platform": "1",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507006",
+         "name": "Münsingen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.873356,
+          "y": 7.55944
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8507007",
+         "name": "Wichtrach",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.84161,
+          "y": 7.568854
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:35:00+0100",
+        "arrivalTimestamp": 1794814500,
+        "departure": "2026-11-16T08:35:00+0100",
+        "departureTimestamp": 1794814500,
+        "delay": null,
+        "platform": "2",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507007",
+         "name": "Wichtrach",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.84161,
+          "y": 7.568854
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8507008",
+         "name": "Kiesen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.818944,
+          "y": 7.575502
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:38:00+0100",
+        "arrivalTimestamp": 1794814680,
+        "departure": "2026-11-16T08:38:00+0100",
+        "departureTimestamp": 1794814680,
+        "delay": null,
+        "platform": "1",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507008",
+         "name": "Kiesen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.818944,
+          "y": 7.575502
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8507009",
+         "name": "Uttigen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.794312,
+          "y": 7.582634
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:40:00+0100",
+        "arrivalTimestamp": 1794814800,
+        "departure": "2026-11-16T08:40:00+0100",
+        "departureTimestamp": 1794814800,
+        "delay": null,
+        "platform": "3",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507009",
+         "name": "Uttigen",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.794312,
+          "y": 7.582634
+         },
+         "distance": null
+        }
+       },
+       {
+        "station": {
+         "id": "8507100",
+         "name": "Thun",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.754852,
+          "y": 7.629607
+         },
+         "distance": null
+        },
+        "arrival": "2026-11-16T08:46:00+0100",
+        "arrivalTimestamp": 1794815160,
+        "departure": null,
+        "departureTimestamp": null,
+        "delay": null,
+        "platform": "4",
+        "prognosis": {
+         "platform": null,
+         "arrival": null,
+         "departure": null,
+         "capacity1st": null,
+         "capacity2nd": null
+        },
+        "realtimeAvailability": null,
+        "location": {
+         "id": "8507100",
+         "name": "Thun",
+         "score": null,
+         "coordinate": {
+          "type": "WGS84",
+          "x": 46.754852,
+          "y": 7.629607
+         },
+         "distance": null
+        }
+       }
+      ],
+      "capacity1st": null,
+      "capacity2nd": null
+     },
+     "walk": null,
+     "departure": {
+      "station": {
+       "id": "8507000",
+       "name": "Bern",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948831,
+        "y": 7.439129
+       },
+       "distance": null
+      },
+      "arrival": null,
+      "arrivalTimestamp": null,
+      "departure": "2026-11-16T08:16:00+0100",
+      "departureTimestamp": 1794813360,
+      "delay": null,
+      "platform": "10",
+      "prognosis": {
+       "platform": null,
+       "arrival": null,
+       "departure": null,
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8507000",
+       "name": "Bern",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.948831,
+        "y": 7.439129
+       },
+       "distance": null
+      }
+     },
+     "arrival": {
+      "station": {
+       "id": "8507100",
+       "name": "Thun",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.754852,
+        "y": 7.629607
+       },
+       "distance": null
+      },
+      "arrival": "2026-11-16T08:46:00+0100",
+      "arrivalTimestamp": 1794815160,
+      "departure": null,
+      "departureTimestamp": null,
+      "delay": null,
+      "platform": "4",
+      "prognosis": {
+       "platform": null,
+       "arrival": null,
+       "departure": null,
+       "capacity1st": null,
+       "capacity2nd": null
+      },
+      "realtimeAvailability": null,
+      "location": {
+       "id": "8507100",
+       "name": "Thun",
+       "score": null,
+       "coordinate": {
+        "type": "WGS84",
+        "x": 46.754852,
+        "y": 7.629607
+       },
+       "distance": null
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "from": {
+  "id": "8590048",
+  "name": "Bern, Bundesplatz",
+  "score": null,
+  "coordinate": {
+   "type": "WGS84",
+   "x": 46.947047,
+   "y": 7.443926
+  },
+  "distance": null
+ },
+ "to": {
+  "id": "8507100",
+  "name": "Thun",
+  "score": null,
+  "coordinate": {
+   "type": "WGS84",
+   "x": 46.754852,
+   "y": 7.629607
+  },
+  "distance": null
+ },
+ "stations": {
+  "from": [
+   {
+    "id": "8590048",
+    "name": "Bern, Bundesplatz",
+    "score": null,
+    "coordinate": {
+     "type": "WGS84",
+     "x": 46.947047,
+     "y": 7.443926
+    },
+    "distance": null
+   }
+  ],
+  "to": [
+   {
+    "id": "8507100",
+    "name": "Thun",
+    "score": null,
+    "coordinate": {
+     "type": "WGS84",
+     "x": 46.754852,
+     "y": 7.629607
+    },
+    "distance": null
+   }
+  ]
+ }
+}

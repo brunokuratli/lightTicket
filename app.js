@@ -22,6 +22,7 @@ const el = (tag, props = {}, children = []) => {
 };
 const pad = (n) => String(n).padStart(2, '0');
 const fmtTime = (iso) => {
+  if (!iso) return '--:--'; // new Date(null) would be 01:00
   const d = new Date(iso);
   return isNaN(d) ? '--:--' : `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
@@ -246,6 +247,108 @@ const showBoardFavs = () => renderFavs('board', boardFavs, (f) => {
   boardForm.requestSubmit ? boardForm.requestSubmit() : boardForm.dispatchEvent(new Event('submit', { cancelable: true }));
 });
 
+/* ---------------- Verbindungsdetail (Etappe 6) ----------------
+ * Built only from what transport.opendata.ch returns: per section the planned
+ * time and platform plus `prognosis` (real time). A platform change is either a
+ * prognosis platform that differs from the planned one, or a planned platform
+ * marked with «!» (how the source flags a change in some answers). The source
+ * has no field for cancellations, so none are shown. */
+const cleanPlat = (p) => String(p || '').replace(/!$/, '').trim();
+function platInfo(stop) {
+  if (!stop) return { text: '', changed: false };
+  const planned = cleanPlat(stop.platform);
+  const prog = cleanPlat(stop.prognosis && stop.prognosis.platform);
+  const changed = (!!prog && prog !== planned) || /!$/.test(String(stop.platform || ''));
+  const now = prog || planned;
+  if (!now) return { text: '', changed: false };
+  return {
+    text: `Gleis ${now}` + (changed && planned && prog && prog !== planned ? ` (statt ${planned})` : '') + (changed ? ' · Gleisänderung' : ''),
+    changed,
+  };
+}
+function minutesBetween(a, b) {
+  if (!a || !b) return null; // new Date(null) is 1970, not NaN
+  const t = (new Date(b).getTime() - new Date(a).getTime()) / 60000;
+  return isNaN(t) ? null : Math.round(t);
+}
+function fmtMin(m) {
+  if (m == null) return '';
+  return m >= 60 ? `${Math.floor(m / 60)}h ${pad(m % 60)}` : `${m} min`;
+}
+function realTime(stop, field) {
+  // planned time plus «+n» if the source reports a delay
+  const planned = stop && stop[field];
+  const prog = stop && stop.prognosis && stop.prognosis[field];
+  let delay = minutesBetween(planned, prog);
+  if (delay != null && delay > 0) return { planned, delay, actual: prog };
+  // only the delay in minutes, no forecast time (the source sets it for departures)
+  delay = stop && stop.delay > 0 && planned ? stop.delay : null;
+  const actual = delay ? new Date(new Date(planned).getTime() + delay * 60000).toISOString() : planned;
+  return { planned, delay, actual };
+}
+function stopLine(stop, field, label) {
+  const t = realTime(stop, field);
+  const p = platInfo(stop);
+  const name = (stop && stop.station && stop.station.name) || (stop && stop.location && stop.location.name) || '';
+  return el('div', { className: 'sec-stop' }, [
+    el('span', { className: 'sec-time' }, [
+      document.createTextNode(fmtTime(t.planned)),
+      t.delay ? el('span', { className: 'delay', textContent: ` +${t.delay}` }) : '',
+    ]),
+    el('span', { className: 'sec-name' }, [
+      el('span', { className: 'sr', textContent: label + ' ' }),
+      document.createTextNode(name),
+    ]),
+    el('span', { className: 'plat' + (p.changed ? ' changed' : ''), textContent: p.text }),
+  ]);
+}
+function renderSections(sections) {
+  const out = [];
+  let prevArrival = null; // arrival of the last ride, for the transfer time
+  sections.forEach((s, i) => {
+    if (s.walk || !s.journey) {
+      const secs = s.walk && Number(s.walk.duration);
+      const mins = secs > 0 ? Math.round(secs / 60) : minutesBetween(s.departure && s.departure.departure, s.arrival && s.arrival.arrival);
+      const to = s.arrival && s.arrival.station && s.arrival.station.name;
+      out.push(el('div', { className: 'sec-walk', textContent: `Fussweg${mins ? ' ' + fmtMin(mins) : ''}${to ? ' bis ' + to : ''}` }));
+      return;
+    }
+    if (prevArrival) {
+      const m = minutesBetween(realTime(prevArrival, 'arrival').actual, realTime(s.departure, 'departure').actual);
+      if (m != null) {
+        const text = m < 0 ? 'Anschluss gefährdet (Ankunft nach Abfahrt)' : `Umsteigen: ${fmtMin(m)}` + (m < 4 ? ' (knapp)' : '');
+        out.push(el('div', { className: 'sec-change' + (m < 4 ? ' tight' : ''), textContent: text }));
+      }
+    }
+    const j = s.journey;
+    const line = `${j.category || ''}${j.number || ''}`.trim() || j.name || '';
+    const pass = (j.passList || []).slice(1, -1).filter((p) => p.station && p.station.name && (p.departure || p.arrival));
+    const sec = el('div', { className: 'sec' }, [
+      el('div', { className: 'sec-line' }, [
+        el('span', { className: 'leg', textContent: line }),
+        el('span', { className: 'sec-dir', textContent: j.to ? `Richtung ${j.to}` : '' }),
+      ]),
+      stopLine(s.departure, 'departure', 'ab'),
+      pass.length ? el('details', { className: 'sec-pass' }, [
+        el('summary', { textContent: `${pass.length} ${pass.length === 1 ? 'Zwischenhalt' : 'Zwischenhalte'}` }),
+        el('ol', {}, pass.map((p) => {
+          const t = realTime(p, p.departure ? 'departure' : 'arrival');
+          return el('li', {}, [
+            el('span', { className: 'sec-time' }, [document.createTextNode(fmtTime(t.planned)),
+              t.delay ? el('span', { className: 'delay', textContent: ` +${t.delay}` }) : '']),
+            document.createTextNode(p.station.name),
+          ]);
+        })),
+      ]) : '',
+      stopLine(s.arrival, 'arrival', 'an'),
+    ]);
+    out.push(sec);
+    prevArrival = s.arrival;
+  });
+  if (!out.length) out.push(el('p', { className: 'msg', textContent: 'Keine Details verfügbar.' }));
+  return out;
+}
+
 function renderConnections(conns, route) {
   connResults.innerHTML = '';
   if (route) {
@@ -266,6 +369,19 @@ function renderConnections(conns, route) {
     if (walkOnly) legs.push(el('span', { className: 'leg', textContent: 'Fussweg' }));
 
     const depDelay = c.from.delay ? ` +${c.from.delay}` : '';
+    const depPlat = platInfo(c.from);
+    const details = el('div', { className: 'conn-detail', hidden: true });
+    const toggle = el('button', { type: 'button', className: 'conn-toggle', textContent: 'Details' });
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', `Details ${fmtTime(c.from.departure)} bis ${fmtTime(c.to.arrival)}`);
+    toggle.addEventListener('click', () => {
+      const open = details.hidden;
+      if (open && !details.childElementCount) details.append(...renderSections(c.sections || []));
+      details.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.textContent = open ? 'Details schliessen' : 'Details';
+      toggle.setAttribute('aria-label', `${toggle.textContent} ${fmtTime(c.from.departure)} bis ${fmtTime(c.to.arrival)}`);
+    });
     const card = el('div', { className: 'conn' }, [
       el('div', { className: 'conn-head' }, [
         el('div', { className: 'conn-times' }, [
@@ -279,10 +395,12 @@ function renderConnections(conns, route) {
         ]),
       ]),
       el('div', { className: 'conn-sub' }, [
-        el('span', { className: 'plat', textContent: c.from.platform ? `Gleis ${c.from.platform}` : '' }),
+        el('span', { className: 'plat' + (depPlat.changed ? ' changed' : ''), textContent: depPlat.text }),
         el('span', { className: 'plat', textContent: c.to.station && c.to.station.name ? `→ ${c.to.station.name}` : '' }),
       ]),
       el('div', { className: 'conn-legs' }, legs),
+      toggle,
+      details,
     ]);
     connResults.append(card);
   }
