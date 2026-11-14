@@ -30,6 +30,9 @@ bleibt als Referenz und zum schnellen Testen. Details zur nativen Variante:
 Light Phone III bringen): [`ANLEITUNG.md`](ANLEITUNG.md) – auch als
 einseitiges PDF zum Teilen: [`docs/SBB-Light-Anleitung.pdf`](docs/SBB-Light-Anleitung.pdf).
 
+📐 **Konzept** (Ist-Stand, Light-Phone-Grenzen, Datenquellen, Tickets, Etappenplan):
+[`docs/KONZEPT.md`](docs/KONZEPT.md).
+
 Die Web-Version wird per GitHub Actions auf **GitHub Pages** veröffentlicht
 (Workflow: `.github/workflows/deploy-pages.yml`). Einmalig muss unter
 **Settings → Pages → Source** „GitHub Actions" gewählt werden; danach ist die
