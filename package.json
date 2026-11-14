@@ -1,0 +1,12 @@
+{
+  "name": "sbb-light",
+  "private": true,
+  "description": "Tests for the SBB Light PWA. The app itself has no build step and no runtime dependencies.",
+  "scripts": {
+    "test": "playwright test --trace off"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "qrcode": "1.5.4"
+  }
+}
