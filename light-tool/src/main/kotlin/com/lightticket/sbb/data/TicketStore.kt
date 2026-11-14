@@ -1,22 +1,25 @@
 package com.lightticket.sbb.data
 
-import android.content.Context
-import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.InputStream
 
 /**
  * On-device ticket wallet. Nothing leaves the phone.
  *
- * Barcode images are copied into the app's private files dir; ticket metadata
+ * Barcode images are copied into the tool's private files dir; ticket metadata
  * is kept in a small JSON index file next to them. No database dependency.
+ *
+ * Takes the private files dir (from the light-sdk `lightContext.filesDir`)
+ * instead of an Android Context: the SDK does not allow tools to touch
+ * Context/contentResolver directly.
  */
-class TicketStore(context: Context) {
+class TicketStore(filesDir: File) {
 
-    private val dir = File(context.filesDir, "tickets").apply { mkdirs() }
+    private val dir = File(filesDir, "tickets").apply { mkdirs() }
     private val index = File(dir, "index.json")
 
     suspend fun all(): List<Ticket> = withContext(Dispatchers.IO) {
@@ -37,24 +40,19 @@ class TicketStore(context: Context) {
     }
 
     /**
-     * Copy the picked image into private storage and persist a ticket.
-     * @return the saved ticket, or null if the image could not be read.
+     * Copy the image bytes from [image] into private storage and persist a ticket.
+     * The caller owns (and closes) the stream.
      */
     suspend fun add(
-        context: Context,
         title: String,
         fromDate: String,
         toDate: String,
         note: String,
-        imageUri: Uri,
-    ): Ticket? = withContext(Dispatchers.IO) {
+        image: InputStream,
+    ): Ticket = withContext(Dispatchers.IO) {
         val id = "t-" + System.currentTimeMillis()
         val imageFile = File(dir, "$id.img")
-        val ok = context.contentResolver.openInputStream(imageUri)?.use { input ->
-            imageFile.outputStream().use { output -> input.copyTo(output) }
-            true
-        } ?: false
-        if (!ok) return@withContext null
+        imageFile.outputStream().use { output -> image.copyTo(output) }
 
         val ticket = Ticket(
             id = id,

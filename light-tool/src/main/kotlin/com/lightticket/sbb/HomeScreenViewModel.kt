@@ -1,18 +1,20 @@
 package com.lightticket.sbb
 
-import android.app.Application
-import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lightticket.sbb.data.Connection
 import com.lightticket.sbb.data.Departure
 import com.lightticket.sbb.data.Ticket
 import com.lightticket.sbb.data.TicketStore
 import com.lightticket.sbb.data.TransportApi
+import com.thelightphone.sdk.LightMedia
+import com.thelightphone.sdk.LightViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -28,12 +30,16 @@ sealed interface Load<out T> {
 }
 
 /**
- * Holds all UI state for the tool. Kept as one ViewModel (three tabs) to match
- * the light-sdk scaffold, which drives a single HomeScreen.
+ * Holds all UI state for the tool (three tabs). A light-sdk [LightViewModel];
+ * it gets the private files dir and the media access from the screen's
+ * `lightContext` instead of an Android Context (not allowed in tools).
  */
-class HomeScreenViewModel(app: Application) : AndroidViewModel(app) {
+class HomeScreenViewModel(
+    filesDir: File,
+    private val media: LightMedia,
+) : LightViewModel<Unit>() {
 
-    private val store = TicketStore(app)
+    private val store = TicketStore(filesDir)
 
     private val _tab = MutableStateFlow(Tab.FAHRPLAN)
     val tab: StateFlow<Tab> = _tab.asStateFlow()
@@ -46,6 +52,10 @@ class HomeScreenViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _tickets = MutableStateFlow<List<Ticket>>(emptyList())
     val tickets: StateFlow<List<Ticket>> = _tickets.asStateFlow()
+
+    /** Images from the device album (null = not loaded yet). */
+    private val _images = MutableStateFlow<List<LightMedia.Item.Image>?>(null)
+    val images: StateFlow<List<LightMedia.Item.Image>?> = _images.asStateFlow()
 
     init { refreshTickets() }
 
@@ -78,9 +88,22 @@ class HomeScreenViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun addTicket(title: String, fromDate: String, toDate: String, note: String, image: Uri) {
+    /** Lists album images. Needs READ_MEDIA_IMAGES (checked by the UI first). */
+    fun loadImages() {
         viewModelScope.launch {
-            store.add(getApplication(), title, fromDate, toDate, note, image)
+            _images.value = try {
+                withContext(Dispatchers.IO) { media.loadImages().items }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    suspend fun decodeImage(item: LightMedia.Item.Image) = media.decodeImage(item)
+
+    fun addTicket(title: String, fromDate: String, toDate: String, note: String, image: LightMedia.Item.Image) {
+        viewModelScope.launch {
+            media.readItem(image) { input -> store.add(title, fromDate, toDate, note, input) }
             refreshTickets()
         }
     }

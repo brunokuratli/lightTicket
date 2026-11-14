@@ -1,21 +1,23 @@
-# Light Tool manifest for SBB Light.
+# Light-Tool-Manifest für SBB Light.
 #
-# NOTE: reconcile these keys with the exact schema of the light-sdk version you
-# clone (see the `examples/authenticator/lighttool.toml` in your fork). The
-# fields below follow the documented intent; key names may differ slightly.
+# Schema gemäss light-sdk docs/tool_metadata/README.md (gepinnter Stand siehe
+# light-tool/ci/light-sdk.ref). Das light-sdk-Plugin erzeugt daraus das
+# AndroidManifest.xml, applicationId, namespace, versionCode und versionName;
+# ein eigenes AndroidManifest.xml ist nicht erlaubt.
+#
+# Quelloffen (MIT): https://github.com/brunokuratli/lightTicket
 
 [tool]
-id          = "com.lightticket.sbb"
-name        = "SBB Light"
-version     = "0.1.0"
-description = "Schweizer Fahrplan (SBB) und Ticket-Wallet – minimalistisch."
-author      = "lightTicket"
-# All community tools must be open source so Light can build & sign from a
-# public git commit.
-license     = "MIT"
-source      = "https://github.com/brunokuratli/lightTicket"
-
-# The tool needs network access for live timetable data from
-# transport.opendata.ch. Ticket images stay on the device.
-[permissions]
-network = true
+id = "com.lightticket.sbb"
+label = "SBB Light"
+versionCode = 1
+versionName = "0.1.0"
+# INTERNET: Fahrplandaten von transport.opendata.ch.
+# READ_MEDIA_IMAGES: Barcode-Bild eines Tickets aus dem Album übernehmen
+# (über lightContext.media; Tickets bleiben auf dem Gerät).
+permissions = ["android.permission.INTERNET", "android.permission.READ_MEDIA_IMAGES"]
+capabilities = []
+# Für den LightOS-Emulator die folgende Zeile verwenden und mit
+# -DlightSdk.allowAltServerPackage=true bauen:
+# serverPackage = "com.thelightphone.sdk.emulator"
+serverPackage = "com.lightos"
