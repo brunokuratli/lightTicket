@@ -473,7 +473,9 @@ private fun SharedTicketViewer(shown: Shown, onClose: () -> Unit) {
                                 contentDescription = "QR-Code des Billetts",
                                 modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                                 contentScale = ContentScale.Fit,
-                                filterQuality = FilterQuality.None, // original pixels, sharp edges
+                                // image: enlarge its own pixels without smoothing;
+                                // PDF: already rendered at screen size from the PDF
+                                filterQuality = if (shown.qrIsCutOut) FilterQuality.None else FilterQuality.Low,
                             )
                         }
                     } else {

@@ -57,6 +57,38 @@ class QrCropTest {
     }
 
     @Test
+    fun rotatedCodeIsNotCutOff() {
+        // QR rotated by 30° around its centre (cx, cy): all four corners must be inside the crop
+        val w = 1240; val h = 1754; val size = 360; val cx = 600.0; val cy = 900.0
+        val m = QRCodeWriter().encode("MUSTER-BILLETT ROTIERT", BarcodeFormat.QR_CODE, size, size, mapOf(EncodeHintType.MARGIN to 0))
+        val a = Math.toRadians(30.0); val cos = Math.cos(a); val sin = Math.sin(a)
+        val px = IntArray(w * h) { white }
+        for (y in 0 until h) for (x in 0 until w) {
+            // inverse rotation into code coordinates
+            val dx = x - cx; val dy = y - cy
+            val u = (cos * dx + sin * dy + size / 2.0).toInt()
+            val v = (-sin * dx + cos * dy + size / 2.0).toInt()
+            if (u in 0 until size && v in 0 until size && m[u, v]) px[y * w + x] = black
+        }
+        val crop = assertNotNull(QrCrop.find(px, w, h))
+        for ((u, v) in listOf(0.0 to 0.0, size.toDouble() to 0.0, 0.0 to size.toDouble(), size.toDouble() to size.toDouble())) {
+            val du = u - size / 2.0; val dv = v - size / 2.0
+            val x = cx + cos * du - sin * dv; val y = cy + sin * du + cos * dv
+            assertTrue(x >= crop.left && x <= crop.left + crop.width && y >= crop.top && y <= crop.top + crop.height, "corner ($x, $y) outside $crop")
+        }
+    }
+
+    @Test
+    fun transparentBackgroundCountsAsWhite() {
+        // QR image as PNG with transparent background: black modules, alpha 0 elsewhere
+        val size = 300; val w = 400
+        val m = QRCodeWriter().encode("MUSTER-BILLETT PNG", BarcodeFormat.QR_CODE, size, size, mapOf(EncodeHintType.MARGIN to 0))
+        val px = IntArray(w * w) { 0x00000000 }
+        for (y in 0 until size) for (x in 0 until size) if (m[x, y]) px[(50 + y) * w + 50 + x] = black
+        assertNotNull(QrCrop.find(px, w, w))
+    }
+
+    @Test
     fun pageWithoutCodeGivesNull() {
         val w = 600; val h = 800
         val px = IntArray(w * h) { white }

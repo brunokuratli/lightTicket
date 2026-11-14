@@ -30,7 +30,7 @@ object QrCrop {
 
     /** [argb] is the page in ARGB, row by row ([width] × [height]). */
     fun find(argb: IntArray, width: Int, height: Int): Crop? {
-        val bitmap = BinaryBitmap(HybridBinarizer(RGBLuminanceSource(width, height, argb)))
+        val bitmap = BinaryBitmap(HybridBinarizer(RGBLuminanceSource(width, height, overWhite(argb))))
         val result = try {
             MultiFormatReader().decode(bitmap, hints)
         } catch (_: Exception) {
@@ -42,12 +42,35 @@ object QrCrop {
     }
 
     /**
+     * zxing ignores alpha, so a transparent PNG background would count as
+     * black. Lay semi-transparent pixels over white first.
+     */
+    fun overWhite(argb: IntArray): IntArray {
+        if (argb.all { it ushr 24 == 0xFF }) return argb
+        return IntArray(argb.size) { i ->
+            val p = argb[i]
+            val a = p ushr 24
+            if (a == 0xFF) p else {
+                fun ch(shift: Int) = (((p shr shift) and 0xFF) * a + 255 * (255 - a)) / 255
+                (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+            }
+        }
+    }
+
+    /**
      * Square around the points zxing reports. For QR these are the centres of
      * the finder patterns, 3.5 modules inside the edge, so the box is widened
      * generously; a little extra white around a code never hurts scanning,
      * a cut-off edge does.
      */
-    fun around(points: List<ResultPoint>, format: BarcodeFormat, width: Int, height: Int): Crop {
+    fun around(found: List<ResultPoint>, format: BarcodeFormat, width: Int, height: Int): Crop {
+        // QR: zxing gives bottom-left, top-left, top-right finder centres (and maybe
+        // an alignment point). On a rotated code the fourth corner lies outside
+        // their box, so add it: bottom-right = bottom-left + top-right - top-left.
+        val points = if (format == BarcodeFormat.QR_CODE && found.size >= 3) {
+            val (bl, tl, tr) = found
+            found + ResultPoint(bl.x + tr.x - tl.x, bl.y + tr.y - tl.y)
+        } else found
         val minX = points.minOf { it.x }; val maxX = points.maxOf { it.x }
         val minY = points.minOf { it.y }; val maxY = points.maxOf { it.y }
         val size = max(maxX - minX, maxY - minY)

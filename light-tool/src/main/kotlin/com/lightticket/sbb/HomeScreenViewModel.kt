@@ -6,7 +6,6 @@ import com.lightticket.sbb.data.Departure
 import com.lightticket.sbb.data.Ticket
 import com.lightticket.sbb.data.TicketStore
 import com.lightticket.sbb.data.TransportApi
-import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.lightticket.sbb.ticket.FileKind
@@ -17,6 +16,7 @@ import com.thelightphone.sdk.LightFileShare
 import com.thelightphone.sdk.LightMedia
 import com.thelightphone.sdk.LightViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,13 +32,16 @@ enum class Tab { FAHRPLAN, ABFAHRTEN, TICKETS }
 /** A ticket from the Tool Manager folder, opened for showing. */
 sealed interface Shown {
     val title: String
-    data class Loading(override val title: String) : Shown
+    /** [token] tells two loads apart even if their titles are equal. */
+    data class Loading(override val title: String, val token: Long) : Shown
     data class Failed(override val title: String, val message: String) : Shown
     class Ready(
         override val title: String,
         val pages: List<ImageBitmap>,
         val qr: ImageBitmap?,
         val pageCount: Int,
+        /** true: [qr] is cut out of an image's own pixels (enlarge without smoothing). */
+        val qrIsCutOut: Boolean,
     ) : Shown
 }
 
@@ -112,9 +115,14 @@ class HomeScreenViewModel(
         }
     }
 
+    private var showJob: Job? = null
+    private var showToken = 0L
+
     fun openShared(t: SharedTicket) {
-        _shown.value = Shown.Loading(t.title)
-        viewModelScope.launch {
+        showJob?.cancel() // an older, slower load must not end up on screen
+        val loading = Shown.Loading(t.title, ++showToken)
+        _shown.value = loading
+        showJob = viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 try {
                     loadShared(t)
@@ -125,7 +133,7 @@ class HomeScreenViewModel(
                 }
             }
             // only if the user has not closed or switched meanwhile
-            if (_shown.value == Shown.Loading(t.title)) _shown.value = result
+            if (_shown.value == loading) _shown.value = result
         }
     }
 
@@ -134,28 +142,31 @@ class HomeScreenViewModel(
         return when (t.kind) {
             FileKind.PDF -> {
                 // PdfRenderer needs a seekable file; copy into private storage first
-                val tmp = File(File(filesDir, "render").apply { mkdirs() }, "show.pdf")
+                // (own file per load, so two loads never share one)
+                val tmp = File.createTempFile("show", ".pdf", File(filesDir, "render").apply { mkdirs() })
                 try {
                     fileShare.readStream(path) { input -> tmp.outputStream().use { input.copyTo(it) } }
                         ?: return Shown.Failed(t.title, "Datei nicht mehr vorhanden.")
                     val r = PdfPages.render(tmp)
                     if (r.pages.isEmpty()) return Shown.Failed(t.title, "PDF ohne Seiten.")
-                    val qr = PdfPages.qrCrop(r.pages)
-                    Shown.Ready(t.title, r.pages.map { it.asImageBitmap() }, qr?.asImageBitmap(), r.pageCount)
+                    Shown.Ready(t.title, r.pages.map { it.asImageBitmap() }, r.qr?.asImageBitmap(), r.pageCount, qrIsCutOut = false)
                 } finally {
                     tmp.delete()
                 }
             }
             FileKind.IMAGE -> {
-                val bmp = fileShare.readStream(path) { BitmapFactory.decodeStream(it) }
+                val bmp = PdfPages.decodeImage { read -> fileShare.readStream(path, read) }
                     ?: return Shown.Failed(t.title, "Bild nicht lesbar.")
-                val qr = PdfPages.qrCrop(listOf(bmp))
-                Shown.Ready(t.title, listOf(bmp.asImageBitmap()), qr?.asImageBitmap(), 1)
+                val qr = PdfPages.imageQr(bmp)
+                Shown.Ready(t.title, listOf(bmp.asImageBitmap()), qr?.asImageBitmap(), 1, qrIsCutOut = true)
             }
         }
     }
 
-    fun closeShown() { _shown.value = null }
+    fun closeShown() {
+        showJob?.cancel()
+        _shown.value = null
+    }
 
     fun deleteShared(t: SharedTicket) {
         viewModelScope.launch {
