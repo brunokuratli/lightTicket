@@ -51,14 +51,20 @@ self.addEventListener('fetch', (event) => {
   event.waitUntil(network.catch(() => {}));
 
   const fromCache = () => caches.match(request, { ignoreSearch: true }).then((cached) =>
-    cached || (request.mode === 'navigate' ? caches.match('./index.html') : undefined));
+    cached || (request.mode === 'navigate' ? caches.match('./index.html') : undefined))
+    .catch(() => undefined);
 
   event.respondWith(new Promise((resolve) => {
     let done = false;
     const finish = (r) => { if (!done && r) { done = true; resolve(r); } };
     // slow network: serve the cache after NET_TIMEOUT (if there is a copy)
     const timer = setTimeout(() => fromCache().then(finish), NET_TIMEOUT);
-    network.then((res) => { clearTimeout(timer); finish(res); }, () => {
+    network.then((res) => {
+      clearTimeout(timer);
+      // server error (e.g. a Pages outage): prefer a good cached copy
+      if (res.ok || res.type === 'opaqueredirect') finish(res);
+      else fromCache().then((r) => finish(r || res));
+    }, () => {
       clearTimeout(timer);
       fromCache().then((r) => finish(r || Response.error()));
     });
