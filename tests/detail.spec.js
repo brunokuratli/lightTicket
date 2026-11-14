@@ -70,6 +70,12 @@ test('Details: Teilstrecken, Gleise, Gleisänderung, Umsteigen, Zwischenhalte (g
   await expect(pass.locator('li')).toHaveCount(8);
   await shot(page, testInfo, '11-verbindungsdetail');
 
+  // platform name and «Gleisänderung» do not overlap the station name at 390 px
+  const boxes = await icDep.evaluate((n) => ['.sec-name', '.plat'].map((c) => n.querySelector(c).getBoundingClientRect().toJSON()));
+  const [nm, pl] = boxes;
+  const overlap = nm.left < pl.right && pl.left < nm.right && nm.top < pl.bottom && pl.top < nm.bottom;
+  expect(overlap).toBe(false);
+
   // closing again
   await card.getByRole('button', { name: 'Details schliessen' }).click();
   await expect(detail).toBeHidden();
@@ -89,4 +95,38 @@ test('Details live: Zürich HB → Bern', async ({ page }, testInfo) => {
   await expect(sec.locator('.sec-stop').first()).toContainText(/Gleis \w+/);
   await expect(card.locator('.conn-detail .sec').last().locator('.sec-stop').last()).toContainText('Bern');
   await shot(page, testInfo, '12-verbindungsdetail-live');
+});
+
+test('Details: Gleisänderung in der Kurzzeile, verpasster Anschluss, fehlende Zeiten', async ({ page }) => {
+  const data = JSON.parse(FIXTURE);
+  const c = data.connections[0];
+  // first departure (bus) moved to platform C
+  c.from.platform = 'B'; c.from.prognosis = { ...c.from.prognosis, platform: 'C' };
+  c.sections[0].departure.platform = 'B'; c.sections[0].departure.prognosis.platform = 'C';
+  // bus arrives late at 08:15 → the IC at 08:10 is missed
+  c.sections[0].arrival.prognosis.arrival = '2026-11-16T08:15:00+0100';
+  // a stop without any time is left out instead of showing a wrong one
+  const pl = data.connections[1].sections[1].journey.passList;
+  pl[1].arrival = null; pl[1].departure = null;
+  // a walk without duration and times shows no absurd number
+  const walk = data.connections[1].sections[0];
+  walk.walk.duration = null; walk.departure.departure = null;
+  await page.route(/\/v1\/connections/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) }));
+  await page.route(/\/v1\/locations/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{"stations":[]}' }));
+  await page.goto('./');
+  await page.getByRole('tab', { name: 'Fahrplan' }).click();
+  await page.locator('#conn-from').fill('Bern, Bundesplatz');
+  await page.locator('#conn-to').fill('Thun');
+  await page.getByRole('button', { name: 'Verbindungen suchen' }).click();
+
+  const card = page.locator('#conn-results .conn').first();
+  await expect(card.locator('.conn-sub .plat.changed')).toHaveText('Gleis C (statt B) · Gleisänderung');
+  await card.getByRole('button', { name: 'Details' }).click();
+  await expect(card.locator('.sec-change')).toHaveText('Anschluss gefährdet (Ankunft nach Abfahrt)');
+
+  const s1 = page.locator('#conn-results .conn').nth(1);
+  await s1.getByRole('button', { name: 'Details' }).click();
+  await expect(s1.locator('.sec-pass summary')).toHaveText('7 Zwischenhalte');
+  await expect(s1.locator('.sec-walk')).toHaveText('Fussweg bis Bern');
+  await expect(s1.locator('.conn-detail')).not.toContainText('01:00');
 });

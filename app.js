@@ -22,6 +22,7 @@ const el = (tag, props = {}, children = []) => {
 };
 const pad = (n) => String(n).padStart(2, '0');
 const fmtTime = (iso) => {
+  if (!iso) return '--:--'; // new Date(null) would be 01:00
   const d = new Date(iso);
   return isNaN(d) ? '--:--' : `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
@@ -266,6 +267,7 @@ function platInfo(stop) {
   };
 }
 function minutesBetween(a, b) {
+  if (!a || !b) return null; // new Date(null) is 1970, not NaN
   const t = (new Date(b).getTime() - new Date(a).getTime()) / 60000;
   return isNaN(t) ? null : Math.round(t);
 }
@@ -278,8 +280,11 @@ function realTime(stop, field) {
   const planned = stop && stop[field];
   const prog = stop && stop.prognosis && stop.prognosis[field];
   let delay = minutesBetween(planned, prog);
-  if (delay == null || delay <= 0) delay = field === 'departure' && stop && stop.delay > 0 ? stop.delay : null;
-  return { planned, delay, actual: delay ? prog || planned : planned };
+  if (delay != null && delay > 0) return { planned, delay, actual: prog };
+  // only the delay in minutes, no forecast time (the source sets it for departures)
+  delay = stop && stop.delay > 0 && planned ? stop.delay : null;
+  const actual = delay ? new Date(new Date(planned).getTime() + delay * 60000).toISOString() : planned;
+  return { planned, delay, actual };
 }
 function stopLine(stop, field, label) {
   const t = realTime(stop, field);
@@ -310,11 +315,14 @@ function renderSections(sections) {
     }
     if (prevArrival) {
       const m = minutesBetween(realTime(prevArrival, 'arrival').actual, realTime(s.departure, 'departure').actual);
-      if (m != null) out.push(el('div', { className: 'sec-change' + (m < 4 ? ' tight' : ''), textContent: `Umsteigen: ${fmtMin(m)}` + (m < 4 ? ' (knapp)' : '') }));
+      if (m != null) {
+        const text = m < 0 ? 'Anschluss gefährdet (Ankunft nach Abfahrt)' : `Umsteigen: ${fmtMin(m)}` + (m < 4 ? ' (knapp)' : '');
+        out.push(el('div', { className: 'sec-change' + (m < 4 ? ' tight' : ''), textContent: text }));
+      }
     }
     const j = s.journey;
     const line = `${j.category || ''}${j.number || ''}`.trim() || j.name || '';
-    const pass = (j.passList || []).slice(1, -1).filter((p) => p.station && p.station.name);
+    const pass = (j.passList || []).slice(1, -1).filter((p) => p.station && p.station.name && (p.departure || p.arrival));
     const sec = el('div', { className: 'sec' }, [
       el('div', { className: 'sec-line' }, [
         el('span', { className: 'leg', textContent: line }),
@@ -365,12 +373,14 @@ function renderConnections(conns, route) {
     const details = el('div', { className: 'conn-detail', hidden: true });
     const toggle = el('button', { type: 'button', className: 'conn-toggle', textContent: 'Details' });
     toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', `Details ${fmtTime(c.from.departure)} bis ${fmtTime(c.to.arrival)}`);
     toggle.addEventListener('click', () => {
       const open = details.hidden;
       if (open && !details.childElementCount) details.append(...renderSections(c.sections || []));
       details.hidden = !open;
       toggle.setAttribute('aria-expanded', String(open));
       toggle.textContent = open ? 'Details schliessen' : 'Details';
+      toggle.setAttribute('aria-label', `${toggle.textContent} ${fmtTime(c.from.departure)} bis ${fmtTime(c.to.arrival)}`);
     });
     const card = el('div', { className: 'conn' }, [
       el('div', { className: 'conn-head' }, [
