@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
+const { createServer } = require('./serve');
 
 const FIX = path.join(__dirname, '..', 'test-results', 'fixtures');
 const PDF = path.join(FIX, 'muster-billett.pdf');
@@ -119,39 +120,52 @@ test('Ticket: Original-PDF ablegen, QR gross und ganze Seite zeigen', async ({ p
   await expect(viewer).toBeHidden();
 });
 
-test('Ticket: bleibt offline sichtbar (Service Worker, IndexedDB)', async ({ page, context }, testInfo) => {
-  await addTicket(page, PDF, 'Offline-Test');
-  await expect(page.locator('#t-status')).toContainText('QR-Code gefunden', { timeout: 30_000 });
-  await page.getByRole('button', { name: 'Speichern' }).click();
-  await expect(page.locator('.ticket').filter({ hasText: 'Offline-Test' })).toBeVisible();
+test('Ticket: bleibt offline sichtbar (Service Worker, IndexedDB)', async ({ page }, testInfo) => {
+  // "Offline" = the web server is really gone (connection refused). This works the
+  // same in Chromium and WebKit, unlike the browser's offline emulation.
+  const server = createServer();
+  const sockets = new Set();
+  server.on('connection', (s) => { sockets.add(s); s.on('close', () => sockets.delete(s)); });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const origin = `http://127.0.0.1:${server.address().port}/`;
+  const stop = () => new Promise((r) => { server.close(r); for (const s of sockets) s.destroy(); });
+  try {
+    await page.goto(origin);
+    await addTicket(page, PDF, 'Offline-Test');
+    await expect(page.locator('#t-status')).toContainText('QR-Code gefunden', { timeout: 30_000 });
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.locator('.ticket').filter({ hasText: 'Offline-Test' })).toBeVisible();
 
-  // wait until the service worker controls the page and has cached the shell
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-    if (!navigator.serviceWorker.controller) {
-      await new Promise((r) => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));
-    }
-  });
-  await expect.poll(() => page.evaluate(async () => {
-    const keys = await caches.keys();
-    if (!keys.includes('sbb-light-v2')) return 0;
-    return (await (await caches.open('sbb-light-v2')).keys()).length;
-  })).toBeGreaterThanOrEqual(10);
+    // wait until the service worker controls the page and has cached the shell
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller) {
+        await new Promise((r) => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));
+      }
+    });
+    await expect.poll(() => page.evaluate(async () => {
+      const keys = await caches.keys();
+      if (!keys.includes('sbb-light-v2')) return 0;
+      return (await (await caches.open('sbb-light-v2')).keys()).length;
+    })).toBeGreaterThanOrEqual(10);
 
-  await context.setOffline(true);
-  await page.reload();
-  await openTab(page, 'Tickets');
-  const card = page.locator('.ticket').filter({ hasText: 'Offline-Test' });
-  await expect(card).toBeVisible();
-  await card.getByRole('button', { name: 'Zeigen' }).click();
-  await expect(page.locator('#viewer-image')).toBeVisible();
-  await shot(page, testInfo, '07-offline-vorzeigen');
-  await page.getByRole('button', { name: 'Schliessen' }).click();
+    await stop();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: /SBB/ })).toBeVisible();
+    await openTab(page, 'Tickets');
+    const card = page.locator('.ticket').filter({ hasText: 'Offline-Test' });
+    await expect(card).toBeVisible();
+    await card.getByRole('button', { name: 'Zeigen' }).click();
+    await expect(page.locator('#viewer-image')).toBeVisible();
+    await shot(page, testInfo, '07-offline-vorzeigen');
+    await page.getByRole('button', { name: 'Schliessen' }).click();
 
-  // import also works offline (libraries come from the cache)
-  await addTicket(page, PDF, 'Offline-Import');
-  await expect(page.locator('#t-status')).toContainText('QR-Code gefunden', { timeout: 30_000 });
-  await context.setOffline(false);
+    // import also works offline (libraries come from the cache)
+    await addTicket(page, PDF, 'Offline-Import');
+    await expect(page.locator('#t-status')).toContainText('QR-Code gefunden', { timeout: 30_000 });
+  } finally {
+    if (server.listening) await stop();
+  }
 });
 
 test('Ticket: Bild des QR-Codes ablegen', async ({ page }) => {
