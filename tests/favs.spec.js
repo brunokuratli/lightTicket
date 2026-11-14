@@ -19,6 +19,10 @@ async function searchZurichBern(page) {
   await expect(page.locator('#conn-results .conn').first()).toBeVisible({ timeout: 30_000 });
 }
 
+// The service worker only serves the app's own files; block it here so page.route
+// is guaranteed to see every timetable request.
+test.use({ serviceWorkers: 'block' });
+
 test.beforeEach(async ({ page }) => {
   await page.goto('./');
 });
@@ -33,8 +37,13 @@ test('Favorit: Strecke merken, nach Neustart mit einem Tipp suchen, entfernen', 
   const chip = page.locator('#conn-favs').getByRole('button', { name: 'Zürich HB → Bern', exact: true });
   await expect(chip).toBeVisible();
   await expect(page.locator('#conn-results .conn')).toHaveCount(0);
+  // the tap must really ask the timetable (no stored result to fall back on)
+  await page.evaluate(() => localStorage.removeItem('sbb.last.conn'));
+  const req = page.waitForRequest(/\/v1\/connections/);
   await chip.click(); // one tap: fills the form with "now" and searches
+  await req;
   await expect(page.locator('#conn-results .conn').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('#conn-results .stale')).toHaveCount(0);
   await expect(page.locator('#conn-from')).toHaveValue('Zürich HB');
   await shot(page, testInfo, '08-favorit-strecke');
 
@@ -54,6 +63,9 @@ test('Ohne Netz: letztes Ergebnis mit «Ohne Echtzeit, Stand hh:mm»', async ({ 
   await page.getByRole('button', { name: 'Verbindungen suchen' }).click();
   const note = page.locator('#conn-results .stale');
   await expect(note).toContainText(/Ohne Echtzeit, Stand \d\d:\d\d/);
+  // the note says which search the stored result belongs to (not the 23:59 one)
+  await expect(note).toContainText(/Suche für \d\d\.\d\d\. \d\d:\d\d ab/);
+  await expect(note).not.toContainText('23:59');
   await expect(page.locator('#conn-results .conn-times').first()).toHaveText(first);
   await shot(page, testInfo, '09-ohne-netz-letztes-ergebnis');
 
@@ -83,6 +95,20 @@ test('Abfahrten: Haltestelle als Favorit, ohne Netz letztes Ergebnis', async ({ 
   await page.locator('#board-favs').getByRole('button', { name: 'Bern', exact: true }).click();
   await expect(page.locator('#board-results .stale')).toContainText('Ohne Echtzeit');
   await expect(page.locator('#board-results .board-row').first()).toBeVisible();
+});
+
+test('Langsame ältere Suche überschreibt die neuere nicht', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Fahrplan' }).click();
+  // first request (to Chur) hangs for 4 s, the second (to Bern) answers normally
+  await page.route(/\/v1\/connections.*to=Chur/, async (r) => { await new Promise((x) => setTimeout(x, 4000)); await r.continue(); });
+  await page.locator('#conn-from').fill('Zürich HB');
+  await page.locator('#conn-to').fill('Chur');
+  await page.getByRole('button', { name: 'Verbindungen suchen' }).click();
+  await page.locator('#conn-to').fill('Bern');
+  await page.getByRole('button', { name: 'Verbindungen suchen' }).click();
+  await expect(page.locator('#conn-results .result-head')).toContainText('Zürich HB → Bern', { timeout: 30_000 });
+  await page.waitForTimeout(5000); // the Chur answer arrives meanwhile
+  await expect(page.locator('#conn-results .result-head')).toContainText('Zürich HB → Bern');
 });
 
 test('Gleiche Suche innerhalb 30 s fragt die API nicht erneut', async ({ page }) => {

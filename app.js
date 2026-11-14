@@ -85,6 +85,11 @@ function lastPut(kind, key, params, data) {
     if (store.set('sbb.last.' + kind, list.slice(0, n))) return;
   }
 }
+function fmtSearch(p) {
+  if (!p || !p.date) return '';
+  const [, m, d] = p.date.split('-');
+  return `Suche für ${d}.${m}. ${p.time || ''} ${p.isArrivalTime === '1' ? 'an' : 'ab'}`.replace(/\s+/g, ' ').trim();
+}
 function staleNote(entry) {
   const d = new Date(entry.at);
   const today = new Date().toDateString() === d.toDateString();
@@ -92,12 +97,14 @@ function staleNote(entry) {
   const why = !navigator.onLine ? 'Keine Internetverbindung' : 'Fahrplan gerade nicht erreichbar';
   return el('div', { className: 'stale' }, [
     el('strong', { textContent: `Ohne Echtzeit, Stand ${when}` }),
-    el('p', { textContent: `${why}. Gezeigt wird das letzte Ergebnis dieser Suche; Verspätungen und Gleise können sich geändert haben.` }),
+    el('p', { textContent: `${why}. Gezeigt wird das letzte gespeicherte Ergebnis` +
+      (fmtSearch(entry.params) ? ` (${fmtSearch(entry.params)})` : '') +
+      '; Verspätungen und Gleise können sich geändert haben.' }),
   ]);
 }
 
 function favList(kind) { return store.get('sbb.fav.' + kind, []); }
-function favSave(kind, list) { store.set('sbb.fav.' + kind, list.slice(0, FAV_MAX)); }
+function favSave(kind, list) { return store.set('sbb.fav.' + kind, list.slice(0, FAV_MAX)); }
 function favHas(kind, key) { return favList(kind).some((f) => f.key === key); }
 function favToggle(kind, fav) {
   const list = favList(kind);
@@ -107,7 +114,7 @@ function favToggle(kind, fav) {
     if (list.length >= FAV_MAX) { alert(`Höchstens ${FAV_MAX} Favoriten. Bitte zuerst einen entfernen.`); return false; }
     list.push(fav);
   }
-  favSave(kind, list);
+  if (!favSave(kind, list)) { alert('Favorit konnte nicht gespeichert werden (Speicher voll?).'); return false; }
   return true;
 }
 
@@ -150,6 +157,7 @@ $('#swap').addEventListener('click', () => {
   [a.value, b.value] = [b.value, a.value];
 });
 
+let connJob = 0;
 connForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const from = $('#conn-from').value.trim();
@@ -164,6 +172,7 @@ connForm.addEventListener('submit', async (e) => {
   };
   const key = `${norm(from)}|${norm(to)}`;
   const last = lastGet('conn', key);
+  const job = ++connJob; // a slow older request must not overwrite a newer one
   connResults.innerHTML = '';
   connResults.append(el('p', { className: 'msg loading', textContent: 'Suche' }));
   try {
@@ -174,8 +183,10 @@ connForm.addEventListener('submit', async (e) => {
       data = await api('/connections', params);
       lastPut('conn', key, params, { connections: data.connections || [] });
     }
+    if (job !== connJob) return;
     renderConnections(data.connections || [], { from, to, key });
   } catch (err) {
+    if (job !== connJob) return;
     connResults.innerHTML = '';
     if (last) {
       renderConnections(last.data.connections || [], { from, to, key });
@@ -201,6 +212,7 @@ function favButton(kind, fav, onChange) {
 }
 
 function renderFavs(kind, box, onPick) {
+  if (!box) return; // index.html from an older version (mixed cache on a weak network)
   const list = favList(kind);
   box.replaceChildren(...list.map((f) => el('span', { className: 'fav' }, [
     el('button', { type: 'button', className: 'fav-go', textContent: f.label, onclick: () => onPick(f) }),
@@ -277,6 +289,7 @@ function renderConnections(conns, route) {
 const boardForm = $('#board-form');
 const boardResults = $('#board-results');
 
+let boardJob = 0;
 boardForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const station = $('#board-station').value.trim();
@@ -284,6 +297,7 @@ boardForm.addEventListener('submit', async (e) => {
   const params = { station, limit: 14 };
   const key = norm(station);
   const last = lastGet('board', key);
+  const job = ++boardJob;
   boardResults.innerHTML = '';
   boardResults.append(el('p', { className: 'msg loading', textContent: 'Laden' }));
   try {
@@ -294,11 +308,20 @@ boardForm.addEventListener('submit', async (e) => {
       data = await api('/stationboard', params);
       lastPut('board', key, params, { station: data.station, stationboard: data.stationboard || [] });
     }
+    if (job !== boardJob) return;
     renderBoard(data, station);
   } catch (err) {
+    if (job !== boardJob) return;
     boardResults.innerHTML = '';
     if (last) {
-      renderBoard(last.data, station);
+      // without real time: leave out trains that have left already
+      const now = Date.now();
+      const left = (s) => {
+        const st = s.stop || {};
+        const t = new Date(st.departure).getTime() + (st.delay || 0) * 60000;
+        return !isNaN(t) && t < now - 60000;
+      };
+      renderBoard({ ...last.data, stationboard: (last.data.stationboard || []).filter((s) => !left(s)) }, station);
       boardResults.prepend(staleNote(last));
     } else {
       boardResults.append(errorBox(err));
