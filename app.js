@@ -224,6 +224,8 @@ async function dbPut(ticket) {
     tx.objectStore(STORE).put(ticket);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
+    // e.g. storage quota: Safari may abort the commit without an error event
+    tx.onabort = () => reject(tx.error || new Error('Speichern abgebrochen'));
   });
 }
 async function dbDelete(id) {
@@ -303,9 +305,11 @@ $('#t-file').addEventListener('change', async (e) => {
       if (!out.pages.length) throw new Error('PDF ohne Seiten');
       pending = { kind: 'pdf', pdf, fileName: file.name, ...out };
       preview.src = out.qr || out.pages[0];
+      const n = out.pages.length;
+      const pagesText = `${n} ${n === 1 ? 'Seite' : 'Seiten'}` + (out.pageCount > n ? ` von ${out.pageCount}` : '');
       setStatus(out.qr
-        ? `PDF gelesen (${out.pageCount} ${out.pageCount === 1 ? 'Seite' : 'Seiten'}), QR-Code gefunden.`
-        : `PDF gelesen (${out.pageCount} ${out.pageCount === 1 ? 'Seite' : 'Seiten'}). Kein QR-Code erkannt: beim Vorzeigen wird die ganze Seite gezeigt.`);
+        ? `PDF gelesen (${pagesText}), QR-Code gefunden.`
+        : `PDF gelesen (${pagesText}). Kein QR-Code erkannt: beim Vorzeigen wird die ganze Seite gezeigt.`);
     } else {
       setStatus('Bild wird gelesen …');
       const image = await readFile(file, 'dataurl');
@@ -342,7 +346,11 @@ ticketForm.addEventListener('submit', async (e) => {
     ...pending,
   };
   pending = null;
-  await dbPut(ticket);
+  try {
+    await dbPut(ticket);
+  } catch (err) {
+    alert(`Ticket konnte nicht gespeichert werden (${(err && err.message) || err}). Ist der Speicher des Geräts voll?`);
+  }
   renderTickets();
 });
 
@@ -431,7 +439,11 @@ function openViewer(t) {
   viewerModes.hidden = !t.qr;
   const hint = $('#viewer-hint');
   hint.replaceChildren();
-  if (t.kind === 'pdf') {
+  // A home-screen app on iOS opens target=_blank links outside the app, where
+  // the blob URL does not exist; there «Ganze Seite» covers the same need.
+  const standalone = navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  if (t.kind === 'pdf' && !standalone) {
     if (pdfUrl) URL.revokeObjectURL(pdfUrl);
     pdfUrl = URL.createObjectURL(new Blob([t.pdf], { type: 'application/pdf' }));
     hint.append(

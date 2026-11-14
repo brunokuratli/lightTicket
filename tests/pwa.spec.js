@@ -123,7 +123,9 @@ test('Ticket: Original-PDF ablegen, QR gross und ganze Seite zeigen', async ({ p
 test('Ticket: bleibt offline sichtbar (Service Worker, IndexedDB)', async ({ page }, testInfo) => {
   // "Offline" = the web server is really gone (connection refused). This works the
   // same in Chromium and WebKit, unlike the browser's offline emulation.
-  const server = createServer();
+  let hang = false; // "weak signal": requests reach the server but never get an answer
+  const inner = createServer();
+  const server = require('http').createServer((req, res) => { if (!hang) inner.emit('request', req, res); });
   const sockets = new Set();
   server.on('connection', (s) => { sockets.add(s); s.on('close', () => sockets.delete(s)); });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -148,6 +150,13 @@ test('Ticket: bleibt offline sichtbar (Service Worker, IndexedDB)', async ({ pag
       if (!keys.includes('sbb-light-v2')) return 0;
       return (await (await caches.open('sbb-light-v2')).keys()).length;
     })).toBeGreaterThanOrEqual(10);
+
+    // weak signal: the app must start from the cache after the network timeout
+    hang = true;
+    const t0 = Date.now();
+    await page.reload({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: /SBB/ })).toBeVisible();
+    expect(Date.now() - t0).toBeLessThan(12_000);
 
     await stop();
     await page.reload();

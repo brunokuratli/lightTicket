@@ -20,6 +20,7 @@
   const PAGE_WIDTH = 1240;    // stored width of the whole-page image
   const MAX_PAGES = 4;        // SBB tickets are one page; be generous but bounded
   const QR_MARGIN = 0.12;     // quiet zone around the crop, relative to code size
+  const MAX_PIXELS = 16e6;    // iOS refuses canvases above ~16.7 MP
 
   let pdfjsPromise = null;
   function loadPdfjs() {
@@ -115,7 +116,9 @@
       for (let i = 1; i <= Math.min(pageCount, MAX_PAGES); i++) {
         if (onProgress) onProgress(`Seite ${i} von ${pageCount}`);
         const page = await doc.getPage(i);
-        const vp = page.getViewport({ scale: RENDER_SCALE });
+        const base = page.getViewport({ scale: 1 });
+        const scale = Math.min(RENDER_SCALE, Math.sqrt(MAX_PIXELS / (base.width * base.height)));
+        const vp = page.getViewport({ scale });
         const c = canvas(vp.width, vp.height);
         const ctx = c.getContext('2d', { willReadFrequently: true });
         ctx.fillStyle = '#ffffff';
@@ -147,8 +150,9 @@
 
   async function fromImage(dataUrl) {
     const img = await loadImage(dataUrl);
-    const c = canvas(img.naturalWidth, img.naturalHeight);
-    c.getContext('2d', { willReadFrequently: true }).drawImage(img, 0, 0);
+    const f = Math.min(1, Math.sqrt(MAX_PIXELS / (img.naturalWidth * img.naturalHeight)));
+    const c = canvas(img.naturalWidth * f, img.naturalHeight * f);
+    c.getContext('2d', { willReadFrequently: true }).drawImage(img, 0, 0, c.width, c.height);
     const r = await locateQr(c);
     // A picture that is (almost) only the code needs no separate crop.
     const useful = r && (r.w * r.h) < 0.6 * c.width * c.height;
