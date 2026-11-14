@@ -35,7 +35,7 @@ nicht steht, ist nicht ausdrücklich erlaubt, sondern nur nicht gesperrt.
 | Kamera: Foto aufnehmen und speichern | **nicht erlaubt (direkt) / ungeprüft (über SDK)** | CameraX (`androidx.camera`) steht nicht in `allowed-dependencies.txt`, darf also nicht selbst eingebunden werden. Eine SDK-Schnittstelle für Fotoaufnahme gibt es im gepinnten Stand nicht. Ein Kamera-Intent bräuchte `Intent`/`startActivity` (gesperrt). |
 | **Lokaler Port** (Server im eigenen WLAN) | **ungeprüft (nicht gesperrt, Hinweise dafür)** | `java.net.ServerSocket` ist nicht gesperrt; `INTERNET` erlaubt; Gruppe `io.ktor` (auch `ktor-server-*`) steht in der Allowlist. Der Builder hat eine Test-Fixture mit `embeddedServer(CIO, port = 8080)`: `builder/tests/fixtures/ktor-server-tool/`. Klartext-HTTP braucht die Capability `cleartext-http` (`docs/tool_metadata/README.md`). Ob LightOS eingehende Verbindungen zulässt: unbelegt. |
 | Bildschirm wach halten / Helligkeit | **nicht erlaubt (bisheriger Weg) / ungeprüft** | Der Weg über `Activity.window` (`FLAG_KEEP_SCREEN_ON`) braucht `LocalContext` und einen Activity-Cast (gesperrt). Eine SDK-Schnittstelle dafür ist im gepinnten Stand nicht zu finden. Im Tool vorerst entfernt (TODO Etappe 2). |
-| Netzwerk über `HttpURLConnection` + `org.json` | **erlaubt (baut)** | Nicht gesperrt; der CI-Build mit `TransportApi.kt` läuft durch. Das SDK selbst empfiehlt Ktor/OkHttp (`tool/…/DetailScreen.kt`). |
+| Netzwerk über `HttpURLConnection` + `org.json` | **erlaubt (baut)** | Nicht gesperrt; der CI-Build mit `TransportApi.kt` läuft durch. Das Gerüst-Beispiel des SDK nutzt Ktor mit OkHttp (`tool/…/DetailScreen.kt`); `:sdk:client` bringt beides mit. |
 
 ## Statische Probe
 

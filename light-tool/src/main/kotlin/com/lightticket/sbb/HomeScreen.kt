@@ -219,6 +219,7 @@ private fun DepartureRow(d: Departure) {
 @Composable
 private fun TicketsScreen(vm: HomeScreenViewModel, onShow: (Ticket) -> Unit) {
     val tickets by vm.tickets.collectAsState()
+    val ticketError by vm.ticketError.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -227,6 +228,12 @@ private fun TicketsScreen(vm: HomeScreenViewModel, onShow: (Ticket) -> Unit) {
                 "SBB-Tickets als Bild hinzu und zeige ihn dem Kontrollpersonal.",
             style = muted(),
         )
+        ticketError?.let { msg ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(msg, Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                OutlinedButton(onClick = vm::clearTicketError) { Text("OK") }
+            }
+        }
         PrimaryButton("Ticket hinzufügen") { showAdd = true }
         if (tickets.isEmpty()) {
             Text("Noch keine Tickets gespeichert.", style = muted())

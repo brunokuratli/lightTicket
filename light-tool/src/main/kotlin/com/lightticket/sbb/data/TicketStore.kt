@@ -1,6 +1,8 @@
 package com.lightticket.sbb.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -22,10 +24,15 @@ class TicketStore(filesDir: File) {
     private val dir = File(filesDir, "tickets").apply { mkdirs() }
     private val index = File(dir, "index.json")
 
-    suspend fun all(): List<Ticket> = withContext(Dispatchers.IO) {
-        if (!index.exists()) return@withContext emptyList()
-        val arr = try { JSONArray(index.readText()) } catch (_: Exception) { return@withContext emptyList() }
-        (0 until arr.length()).mapNotNull { i ->
+    /** add/delete read, change and rewrite index.json; never two at once. */
+    private val lock = Mutex()
+
+    suspend fun all(): List<Ticket> = withContext(Dispatchers.IO) { read() }
+
+    private fun read(): List<Ticket> {
+        if (!index.exists()) return emptyList()
+        val arr = try { JSONArray(index.readText()) } catch (_: Exception) { return emptyList() }
+        return (0 until arr.length()).mapNotNull { i ->
             val o = arr.optJSONObject(i) ?: return@mapNotNull null
             Ticket(
                 id = o.optString("id"),
@@ -49,10 +56,15 @@ class TicketStore(filesDir: File) {
         toDate: String,
         note: String,
         image: InputStream,
-    ): Ticket = withContext(Dispatchers.IO) {
+    ): Ticket = withContext(Dispatchers.IO) { lock.withLock {
         val id = "t-" + System.currentTimeMillis()
         val imageFile = File(dir, "$id.img")
-        imageFile.outputStream().use { output -> image.copyTo(output) }
+        try {
+            imageFile.outputStream().use { output -> image.copyTo(output) }
+        } catch (e: Exception) {
+            imageFile.delete() // no half-written file without an index entry
+            throw e
+        }
 
         val ticket = Ticket(
             id = id,
@@ -63,15 +75,20 @@ class TicketStore(filesDir: File) {
             imagePath = imageFile.absolutePath,
             created = System.currentTimeMillis(),
         )
-        write(all().toMutableList().apply { add(0, ticket) })
+        try {
+            write(read().toMutableList().apply { add(0, ticket) })
+        } catch (e: Exception) {
+            imageFile.delete()
+            throw e
+        }
         ticket
-    }
+    } }
 
-    suspend fun delete(id: String) = withContext(Dispatchers.IO) {
-        val current = all()
+    suspend fun delete(id: String) = withContext(Dispatchers.IO) { lock.withLock {
+        val current = read()
         current.firstOrNull { it.id == id }?.let { runCatching { File(it.imagePath).delete() } }
         write(current.filterNot { it.id == id })
-    }
+    } }
 
     private fun write(tickets: List<Ticket>) {
         val arr = JSONArray()

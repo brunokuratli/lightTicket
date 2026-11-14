@@ -31,7 +31,13 @@ jobs:
 
       - name: light-sdk-Commit lesen
         id: sdk
-        run: echo "ref=$(tr -d '[:space:]' < light-tool/ci/light-sdk.ref)" >> "$GITHUB_OUTPUT"
+        run: |
+          ref="$(tr -d '[:space:]' < light-tool/ci/light-sdk.ref)"
+          if ! [[ "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::light-sdk.ref ist keine volle Commit-SHA: '$ref'"
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
 
       - name: Checkout light-sdk (gepinnt)
         uses: actions/checkout@v4

@@ -23,9 +23,18 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tool_src="$(cd "$here/.." && pwd)"
 sdk_dir="$1"
 ref="$(tr -d '[:space:]' < "$here/light-sdk.ref")"
+if ! [[ "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "light-tool/ci/light-sdk.ref muss eine volle Commit-SHA (40 Zeichen) enthalten, ist: '$ref'" >&2
+  exit 1
+fi
 
-if [ ! -d "$sdk_dir/.git" ]; then
+if ! git -C "$sdk_dir" rev-parse -q --verify HEAD >/dev/null 2>&1; then
+  if [ -e "$sdk_dir" ] && [ -n "$(ls -A "$sdk_dir" 2>/dev/null)" ] && [ ! -d "$sdk_dir/.git" ]; then
+    echo "$sdk_dir existiert, ist aber kein git-Checkout" >&2
+    exit 1
+  fi
   echo "light-sdk wird nach $sdk_dir geklont (Commit $ref)"
+  rm -rf "$sdk_dir/.git" # Reste eines abgebrochenen Klons
   git init -q "$sdk_dir"
   git -C "$sdk_dir" remote add origin https://github.com/lightphone/light-sdk.git
   git -C "$sdk_dir" fetch -q --depth 1 origin "$ref"
@@ -34,6 +43,10 @@ fi
 
 actual="$(git -C "$sdk_dir" rev-parse HEAD)"
 if [ "$actual" != "$ref" ]; then
+  if [ -n "${CI:-}" ]; then
+    echo "Fehler: light-sdk steht auf $actual, gepinnt ist $ref" >&2
+    exit 1
+  fi
   echo "Warnung: light-sdk steht auf $actual, gepinnt ist $ref" >&2
 fi
 

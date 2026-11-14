@@ -57,6 +57,11 @@ class HomeScreenViewModel(
     private val _images = MutableStateFlow<List<LightMedia.Item.Image>?>(null)
     val images: StateFlow<List<LightMedia.Item.Image>?> = _images.asStateFlow()
 
+    /** Last ticket error, shown on the Tickets tab until dismissed. */
+    private val _ticketError = MutableStateFlow<String?>(null)
+    val ticketError: StateFlow<String?> = _ticketError.asStateFlow()
+    fun clearTicketError() { _ticketError.value = null }
+
     init { refreshTickets() }
 
     fun selectTab(t: Tab) { _tab.value = t }
@@ -103,14 +108,20 @@ class HomeScreenViewModel(
 
     fun addTicket(title: String, fromDate: String, toDate: String, note: String, image: LightMedia.Item.Image) {
         viewModelScope.launch {
-            media.readItem(image) { input -> store.add(title, fromDate, toDate, note, input) }
+            _ticketError.value = try {
+                val saved = media.readItem(image) { input -> store.add(title, fromDate, toDate, note, input) }
+                if (saved == null) "Das Bild ist nicht mehr lesbar. Ticket nicht gespeichert." else null
+            } catch (e: Exception) {
+                // e.g. storage full, or the image permission was revoked meanwhile
+                "Ticket nicht gespeichert (${e.message ?: "unbekannter Fehler"})."
+            }
             refreshTickets()
         }
     }
 
     fun deleteTicket(id: String) {
         viewModelScope.launch {
-            store.delete(id)
+            try { store.delete(id) } catch (e: Exception) { _ticketError.value = "Löschen fehlgeschlagen (${e.message ?: "unbekannter Fehler"})." }
             refreshTickets()
         }
     }

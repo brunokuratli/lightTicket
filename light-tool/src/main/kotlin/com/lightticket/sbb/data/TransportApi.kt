@@ -25,9 +25,10 @@ object TransportApi {
         timeZone = TimeZone.getTimeZone("Europe/Zurich")
     }
 
+    // SimpleDateFormat is not thread-safe; connection and board requests may run at once.
     private fun fmtTime(iso: String?): String {
         if (iso.isNullOrBlank()) return "--:--"
-        return try { hhmm.format(isoParser.parse(iso)!!) } catch (_: Exception) { "--:--" }
+        return try { synchronized(this) { hhmm.format(isoParser.parse(iso)!!) } } catch (_: Exception) { "--:--" }
     }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
