@@ -6,13 +6,16 @@ ablenkungsfrei, offline-fähig, ohne Tracking und ohne Konto.
 
 - **Fahrplan** – Verbindungen von A nach B suchen (Datum/Zeit, ab/an).
 - **Abfahrten** – Live-Abfahrtstafel für jede Haltestelle.
-- **Tickets** – gekaufte SBB-Tickets als Barcode-Bild ablegen und dem
-  Kontrollpersonal in einer grossen, hellen Vollbildansicht zeigen.
+- **Favoriten** – bis 5 Strecken und 5 Haltestellen, mit einem Tipp gesucht.
+- **Ohne Netz** – zuletzt gesuchte Strecken und Abfahrten mit Hinweis
+  «Ohne Echtzeit, Stand hh:mm».
+- **Tickets** – gekaufte SBB-Billette als **Original-PDF** (oder Bild) ablegen
+  und dem Kontrollpersonal zeigen: QR-Code gross oder ganze Seite, auch offline.
 
 Die Fahrplandaten kommen von der freien API
 [transport.opendata.ch](https://transport.opendata.ch) (kein Schlüssel nötig,
-CORS aktiv). Tickets bleiben ausschliesslich auf dem Gerät (IndexedDB) – es gibt
-keinen Server.
+CORS aktiv). Fahrplandaten: [opentransportdata.swiss](https://opentransportdata.swiss).
+Tickets bleiben ausschliesslich auf dem Gerät (IndexedDB) – es gibt keinen Server.
 
 ## Zwei Umsetzungen in diesem Repo
 
@@ -90,29 +93,43 @@ Tickets sind auch ohne Internet abrufbar.
 
 ## Tickets hinzufügen
 
-SBB verkauft Tickets als PDF/Screenshot mit **Barcode (Aztec)**. Diese erste
-Version integriert bewusst **nicht** den SBB-Kauf-Flow (dafür gibt es keine
-öffentliche API) – stattdessen legst du dein bereits gekauftes Ticket zuverlässig
-für jede Ticketart ab:
+Die App kauft keine Tickets (dafür gibt es keine öffentliche API). Sie legt ein
+bereits gekauftes Billett ab und zeigt es vor. Erste Wahl ist das
+**Original-PDF** (Begründung: `docs/KONZEPT.md`, Abschnitt 5).
 
-1. Tab **Tickets** → **Ticket hinzufügen**.
-2. Titel, Gültigkeit und optional eine Notiz erfassen.
-3. **Bild des Barcodes** wählen (Screenshot/Foto der Ticket-PDF).
-4. Speichern – zum Vorzeigen **„Zeigen"** tippen: grosse, helle Vollbildansicht
-   mit aktivem Wach-Halten des Displays.
+1. Das PDF des Billetts aufs Gerät holen (Bestätigungs-Mail der SBB oder
+   SBB.ch → Profil → Bestellungen) und in «Dateien» sichern.
+2. Tab **Tickets** → **Ticket hinzufügen** → Datei wählen. Der Titel wird aus
+   dem Dateinamen vorgeschlagen; Gültigkeit und Notiz optional.
+3. Die App liest das PDF auf dem Gerät, zeichnet jede Seite als Bild und sucht
+   den QR-Code. «QR gross» ist ein **Ausschnitt der Originalpixel**, der Code
+   wird nicht neu gezeichnet und sein Inhalt nicht gespeichert.
+4. Zum Vorzeigen **«Zeigen»**: QR-Code gross, Umschalter «Ganze Seite»
+   (OT-Nummer, Name, Gültigkeit lesbar), Link zum Original-PDF. Der Bildschirm
+   bleibt wach, wo der Browser das erlaubt. Ausweis im Original mitführen.
+
+Ein Bild (Screenshot des QR-Codes) geht weiterhin, ist aber schwächer belegt.
+Wird kein QR-Code erkannt (z. B. Aztec-Code bei internationalen Billetten),
+zeigt die App die ganze Seite. Abgelaufene Billette sind markiert.
+
+Hinweis iPhone: Safari kann Daten einer Webseite nach längerer Nichtnutzung
+löschen; als App auf dem Home-Bildschirm installiert ist das nicht der Fall.
 
 ## Technik
 
 | Bereich        | Umsetzung                                          |
 |----------------|----------------------------------------------------|
 | Fahrplan       | `transport.opendata.ch/v1` (locations/connections/stationboard) |
-| Speicher       | IndexedDB (Tickets), localStorage (Ansicht)        |
-| Offline        | Service Worker (App-Shell precache, API network-only) |
-| Abhängigkeiten | keine – reines HTML/CSS/JS                          |
+| Speicher       | IndexedDB (Original-PDF, gerenderte Seiten, QR-Ausschnitt), localStorage (Ansicht, Favoriten, letzte 8 Ergebnisse je Art) |
+| API-Schonung   | gleiche Anfrage innerhalb 30 s aus dem lokalen Ergebnis (Bitte von transport.opendata.ch), Zeitlimit 15 s |
+| PDF / QR       | pdf.js 4.10.38 (Legacy-Build) und jsQR 1.4.0, beide Apache-2.0, lokal in `vendor/`, erst beim Import geladen |
+| Offline        | Service Worker (App-Hülle und Bibliotheken vorab gespeichert, eigene Dateien zuerst aus dem Netz, API nur Netz) |
+| Abhängigkeiten | keine Build-Schritte; Laufzeit nur `vendor/`        |
+| Tests          | `npm ci && npx playwright install chromium && npm test` (iPhone-Format; CI zusätzlich WebKit; echte Suche Zürich HB → Bern) |
 
 ## Roadmap
 
 - Verbindungs-Detailansicht mit allen Zwischenhalten.
-- Favoriten für häufige Strecken/Haltestellen.
+- Light Phone III: PDF-Billett im nativen Tool (Etappe 2 im Konzept).
 - Einreichung als Light-Phone-Tool, sobald die Tool-Library-Spezifikation
   öffentlich ist.

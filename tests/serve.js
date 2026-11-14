@@ -1,0 +1,36 @@
+// Minimal static file server for the tests (no dependency). Serves the repo root.
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+const root = path.resolve(__dirname, '..');
+const types = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json',
+  '.png': 'image/png', '.pdf': 'application/pdf', '.json': 'application/json',
+};
+
+function createServer() {
+  return http.createServer((req, res) => {
+    let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    if (p.endsWith('/')) p += 'index.html';
+    const file = path.join(root, p);
+    if (!file.startsWith(root + path.sep) || file.includes(`${path.sep}node_modules${path.sep}`)) {
+      res.writeHead(403).end();
+      return;
+    }
+    fs.readFile(file, (err, data) => {
+      if (err) { res.writeHead(404).end('not found'); return; }
+      res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+      res.end(data);
+    });
+  });
+}
+
+module.exports = { createServer };
+
+if (require.main === module) {
+  const port = Number(process.env.PORT || 4173);
+  createServer().listen(port, '127.0.0.1', () => console.log(`serving ${root} on http://127.0.0.1:${port}`));
+}
