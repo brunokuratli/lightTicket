@@ -16,7 +16,9 @@ versionName = "0.1.0"
 # READ_MEDIA_IMAGES: Barcode-Bild eines Tickets aus dem Album übernehmen
 # (über lightContext.media; Tickets bleiben auf dem Gerät).
 permissions = ["android.permission.INTERNET", "android.permission.READ_MEDIA_IMAGES"]
-capabilities = []
+# tool-manager-provider: Billett-PDF vom Computer im selben WLAN hochladen
+# (light-sdk docs/tool_manager), landet in files/shared/billette.
+capabilities = ["tool-manager-provider"]
 # Für den LightOS-Emulator die folgende Zeile verwenden und mit
 # -DlightSdk.allowAltServerPackage=true bauen:
 # serverPackage = "com.thelightphone.sdk.emulator"

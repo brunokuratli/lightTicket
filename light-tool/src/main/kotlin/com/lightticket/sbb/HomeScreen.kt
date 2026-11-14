@@ -17,6 +17,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -28,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import com.lightticket.sbb.data.Connection
 import com.lightticket.sbb.data.Departure
 import com.lightticket.sbb.data.Ticket
+import com.lightticket.sbb.ticket.FileKind
+import com.lightticket.sbb.ticket.SharedTicket
 import com.lightticket.sbb.ui.SbbLightTheme
 import com.thelightphone.sdk.InitialScreen
 import com.thelightphone.sdk.LightMedia
@@ -52,7 +56,7 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
         get() = HomeScreenViewModel::class.java
 
     override fun createViewModel(): HomeScreenViewModel =
-        HomeScreenViewModel(lightContext.filesDir, lightContext.media)
+        HomeScreenViewModel(lightContext.filesDir, lightContext.media, lightContext.fileShare)
 
     @Composable
     override fun Content() {
@@ -94,6 +98,8 @@ private fun SbbLightApp(vm: HomeScreenViewModel) {
         }
 
         viewing?.let { TicketViewer(it) { viewing = null } }
+        val shown by vm.shown.collectAsState()
+        shown?.let { SharedTicketViewer(it, vm::closeShown) }
     }
 }
 
@@ -234,6 +240,8 @@ private fun TicketsScreen(vm: HomeScreenViewModel, onShow: (Ticket) -> Unit) {
                 OutlinedButton(onClick = vm::clearTicketError) { Text("OK") }
             }
         }
+        SharedTicketsSection(vm)
+        Text("Barcode-Bilder aus dem Album", fontWeight = FontWeight.Bold)
         PrimaryButton("Ticket hinzufügen") { showAdd = true }
         if (tickets.isEmpty()) {
             Text("Noch keine Tickets gespeichert.", style = muted())
@@ -252,6 +260,46 @@ private fun TicketsScreen(vm: HomeScreenViewModel, onShow: (Ticket) -> Unit) {
                 vm.addTicket(title, from, to, note, image)
                 showAdd = false
             },
+        )
+    }
+}
+
+/** Original ticket files uploaded from a computer with the Tool Manager. */
+@Composable
+private fun SharedTicketsSection(vm: HomeScreenViewModel) {
+    val shared by vm.shared.collectAsState()
+    var confirmDelete by remember { mutableStateOf<SharedTicket?>(null) }
+    LaunchedEffect(Unit) { vm.refreshShared() }
+
+    Text("Billett-PDF vom Computer", fontWeight = FontWeight.Bold)
+    if (shared.isEmpty()) {
+        Text(
+            "Am Computer im selben WLAN den Tool Manager öffnen, «SBB Light» → «Billette» wählen " +
+                "und das Billett-PDF hochladen. Es erscheint dann hier.",
+            style = muted(),
+        )
+    }
+    shared.forEach { s ->
+        Card {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text(s.title, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(if (s.kind == FileKind.PDF) "PDF" else "Bild", style = muted())
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PrimaryButton("Zeigen", small = true) { vm.openShared(s) }
+                    OutlinedButton(onClick = { confirmDelete = s }) { Text("Löschen") }
+                }
+            }
+        }
+    }
+    confirmDelete?.let { s ->
+        AlertDialog(
+            onDismissRequest = { confirmDelete = null },
+            confirmButton = { Button(onClick = { vm.deleteShared(s); confirmDelete = null }) { Text("Löschen") } },
+            dismissButton = { OutlinedButton(onClick = { confirmDelete = null }) { Text("Abbrechen") } },
+            title = { Text("Billett löschen?") },
+            text = { Text("«${s.title}» wird vom Telefon gelöscht.") },
         )
     }
 }
@@ -364,12 +412,11 @@ private fun AddTicketDialog(
 /* ------------------------- Fullscreen viewer ------------------------- */
 @Composable
 private fun TicketViewer(t: Ticket, onClose: () -> Unit) {
-    // TODO(Etappe 2): Bildschirm wach halten und Helligkeit maximal, solange
-    // ein Barcode gezeigt wird. Der bisherige Weg über das Activity-Fenster
-    // (FLAG_KEEP_SCREEN_ON) ist im light-sdk gesperrt (kein Zugriff auf
-    // Activity/Context); eine SDK-Schnittstelle dafür ist nicht belegt.
+    // Bildschirm bleibt wach, solange der Barcode gezeigt wird (Compose
+    // Modifier.keepScreenOn, kein Activity-Zugriff nötig). Helligkeit lässt
+    // sich ohne Activity-Fenster nicht setzen: Hinweis im Text.
     // Always light for scannability, regardless of system theme.
-    Surface(color = androidx.compose.ui.graphics.Color.White) {
+    Surface(color = androidx.compose.ui.graphics.Color.White, modifier = Modifier.keepScreenOn()) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 OutlinedButton(onClick = onClose) { Text("Schliessen", color = androidx.compose.ui.graphics.Color.Black) }
@@ -391,6 +438,76 @@ private fun TicketViewer(t: Ticket, onClose: () -> Unit) {
             }
         }
     }
+}
+
+/**
+ * Fullscreen view of an uploaded ticket: «QR gross» shows the cut-out of the
+ * original pixels (scaled without smoothing), «Ganze Seite» the rendered pages.
+ */
+@Composable
+private fun SharedTicketViewer(shown: Shown, onClose: () -> Unit) {
+    val black = androidx.compose.ui.graphics.Color.Black
+    val ready = shown as? Shown.Ready
+    var qrMode by remember(shown) { mutableStateOf(ready?.qr != null) }
+    Surface(color = androidx.compose.ui.graphics.Color.White, modifier = Modifier.fillMaxSize().keepScreenOn()) {
+        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(shown.title, Modifier.weight(1f), color = black, fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                OutlinedButton(onClick = onClose) { Text("Schliessen", color = black) }
+            }
+            when (shown) {
+                is Shown.Loading -> Text("Billett wird geladen…", color = black)
+                is Shown.Failed -> Text(shown.message, color = black)
+                is Shown.Ready -> {
+                    if (shown.qr != null) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ModeButton("QR gross", qrMode, Modifier.weight(1f)) { qrMode = true }
+                            ModeButton("Ganze Seite", !qrMode, Modifier.weight(1f)) { qrMode = false }
+                        }
+                    }
+                    Text("Bildschirm hell stellen. Ausweis bereithalten.", color = androidx.compose.ui.graphics.Color(0xFF333333))
+                    if (qrMode && shown.qr != null) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Image(
+                                shown.qr,
+                                contentDescription = "QR-Code des Billetts",
+                                modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+                                contentScale = ContentScale.Fit,
+                                filterQuality = FilterQuality.None, // original pixels, sharp edges
+                            )
+                        }
+                    } else {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            shown.pages.forEachIndexed { i, page ->
+                                Image(
+                                    page,
+                                    contentDescription = "Billett, Seite ${i + 1}",
+                                    modifier = Modifier.fillMaxWidth().border(1.dp, black),
+                                    contentScale = ContentScale.FillWidth,
+                                )
+                            }
+                            if (shown.pageCount > shown.pages.size) {
+                                Text("Gezeigt: ${shown.pages.size} von ${shown.pageCount} Seiten.", color = black)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModeButton(text: String, active: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val black = androidx.compose.ui.graphics.Color.Black
+    val white = androidx.compose.ui.graphics.Color.White
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(4.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = if (active) black else white, contentColor = if (active) white else black),
+        border = androidx.compose.foundation.BorderStroke(2.dp, black),
+    ) { Text(text, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal) }
 }
 
 /* ------------------------- shared bits ------------------------- */

@@ -62,6 +62,10 @@ jobs:
 
       # Android-SDK ist auf ubuntu-latest vorinstalliert ($ANDROID_HOME);
       # fehlende Plattformen lädt das Android-Gradle-Plugin selbst nach.
+      - name: Unit-Tests (QR-Ausschnitt, Billett-Dateien)
+        working-directory: light-sdk
+        run: ./gradlew --stacktrace -DlightSdk.toolOnly=true :tool:testDebugUnitTest
+
       - name: Debug-APK bauen
         working-directory: light-sdk
         run: ./gradlew --stacktrace -DlightSdk.toolOnly=true :tool:assembleDebug

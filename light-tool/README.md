@@ -106,7 +106,21 @@ Repo oder ein Fork nötig ist.
 
 - **Laufzeit:** nichts auf Gerät oder Emulator geprüft (siehe oben).
 - **Bild-Auswahl:** die Album-Liste zeigt nur Dateinamen (max. 30), keine
-  Vorschaubilder; PDFs gehen so nicht (Etappe 2, z. B. über den Tool Manager).
+  Vorschaubilder. PDFs kommen über den Tool Manager (siehe unten).
+
+## Billett-PDF vom Computer (Tool Manager)
+
+1. Light Phone III und Computer im selben WLAN.
+2. Am Computer den Tool Manager von Light im Browser öffnen, «SBB Light» →
+   «Billette» wählen, das Original-PDF des Billetts (oder ein Bild des
+   QR-Codes) hochladen.
+3. Im Tool unter «Tickets» → «Billett-PDF vom Computer» erscheint die Datei;
+   «Zeigen» öffnet «QR gross» (Ausschnitt in Originalpixeln, ohne Glätten)
+   oder «Ganze Seite». Der Bildschirm bleibt dabei wach.
+
+Die Datei liegt in `files/shared/billette` des Tools und verlässt das Telefon
+nicht. Helligkeit kann ein Tool nicht setzen (siehe `docs/LIGHT-SDK-APIS.md`).
+**Auf keinem Gerät geprüft.**
 - **Bildschirm wach / Helligkeit** beim Vorzeigen: keine SDK-Schnittstelle gefunden.
 - **Aztec-Barcode:** Wir **zeigen** das gespeicherte Barcode-Bild (kein
   Erzeugen nötig). `com.google.zxing:core` steht in der SDK-Allowlist, falls

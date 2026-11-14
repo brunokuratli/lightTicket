@@ -82,6 +82,9 @@ dependencies {
     // media), Berechtigungen. Bringt per `api` Compose (BOM, foundation,
     // material3), Lifecycle und Coroutines mit, darum keine weiteren Einträge.
     implementation(project(":sdk:client"))
+    // QR/Aztec auf der Billett-Seite finden (nur Lage, kein Neuzeichnen);
+    // com.google.zxing:core steht in der Allowlist des light-sdk.
+    implementation(libs.zxing.core)
 
     testImplementation(libs.kotlin.test)
 }
