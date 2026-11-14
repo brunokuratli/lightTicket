@@ -52,6 +52,7 @@
         <button type="submit" class="primary">Verbindungen suchen</button>
       </form>
       <div id="conn-results" class="results" aria-live="polite"></div>
+      <p class="source">Fahrplandaten: <a href="https://opentransportdata.swiss" target="_blank" rel="noopener">opentransportdata.swiss</a>, abgefragt über <a href="https://transport.opendata.ch" target="_blank" rel="noopener">transport.opendata.ch</a>. Ohne Gewähr.</p>
     </section>
 
     <!-- ============ ABFAHRTEN (stationboard) ============ -->
@@ -64,11 +65,12 @@
         <button type="submit" class="primary">Abfahrten anzeigen</button>
       </form>
       <div id="board-results" class="results" aria-live="polite"></div>
+      <p class="source">Fahrplandaten: <a href="https://opentransportdata.swiss" target="_blank" rel="noopener">opentransportdata.swiss</a>, abgefragt über <a href="https://transport.opendata.ch" target="_blank" rel="noopener">transport.opendata.ch</a>. Ohne Gewähr.</p>
     </section>
 
     <!-- ============ TICKETS (wallet) ============ -->
     <section id="tickets" class="view" data-view="tickets" hidden>
-      <p class="hint">Tickets werden nur auf diesem Gerät gespeichert. Füge den Barcode deines gekauften SBB-Tickets als Bild hinzu (Screenshot oder Foto der PDF) und zeige ihn dem Kontrollpersonal.</p>
+      <p class="hint">Tickets bleiben nur auf diesem Gerät. Am besten das <strong>Original-PDF</strong> des gekauften Billetts ablegen (aus der Bestätigungs-Mail oder unter «Bestellungen» auf SBB.ch). Beim Vorzeigen: QR-Code gross oder ganze Seite. Ein amtlicher Ausweis bleibt nötig.</p>
       <button id="add-ticket" class="primary">Ticket hinzufügen</button>
       <div id="ticket-list" class="ticket-list"></div>
     </section>
@@ -92,13 +94,14 @@
       <label>Notiz (optional)
         <input id="t-note" placeholder="Klasse, Halbtax, Sitzplatz …" />
       </label>
-      <label>Barcode / Ticket-Bild
-        <input id="t-image" type="file" accept="image/*" />
+      <label>Billett als PDF (empfohlen) oder Bild
+        <input id="t-file" type="file" accept="application/pdf,.pdf,image/*" />
       </label>
-      <img id="t-preview" class="preview" alt="" hidden />
+      <p id="t-status" class="status" aria-live="polite" hidden></p>
+      <img id="t-preview" class="preview" alt="Vorschau" hidden />
       <div class="row end">
         <button type="button" id="t-cancel" class="ghost">Abbrechen</button>
-        <button type="submit" class="primary">Speichern</button>
+        <button type="submit" id="t-save" class="primary">Speichern</button>
       </div>
     </form>
   </dialog>
@@ -108,11 +111,18 @@
     <button id="viewer-close" class="viewer-close" aria-label="Schliessen">✕</button>
     <div class="viewer-inner">
       <h2 id="viewer-title"></h2>
-      <img id="viewer-image" alt="Ticket-Barcode" />
+      <div id="viewer-modes" class="viewer-modes" role="tablist" hidden>
+        <button type="button" id="mode-qr" role="tab" aria-selected="true">QR gross</button>
+        <button type="button" id="mode-page" role="tab" aria-selected="false">Ganze Seite</button>
+      </div>
+      <img id="viewer-image" alt="QR-Code des Billetts" />
+      <div id="viewer-pages" class="viewer-pages" hidden></div>
       <p id="viewer-meta" class="viewer-meta"></p>
+      <p id="viewer-hint" class="viewer-hint"></p>
     </div>
   </div>
 
+  <script src="ticket-render.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

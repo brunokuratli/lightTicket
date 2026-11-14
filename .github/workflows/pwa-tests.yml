@@ -1,0 +1,45 @@
+name: PWA tests
+
+# Click tests of the PWA in iPhone format (Chromium and WebKit), including a
+# real timetable search Zürich HB → Bern against transport.opendata.ch.
+# Screenshots are uploaded as an artifact.
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'light-tool/**'
+      - 'docs/**'
+      - '**.md'
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'light-tool/**'
+      - 'docs/**'
+      - '**.md'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npx playwright test --trace off
+        env:
+          CI: 'true'
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-screenshots
+          path: test-results/screenshots
+          if-no-files-found: ignore
